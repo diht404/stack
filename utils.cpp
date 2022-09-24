@@ -1,37 +1,40 @@
 #include "utils.h"
 
-void processError(int error)
+void processError(size_t error)
 {
-    switch (error)
-    {
-        case NO_ERRORS:break;
-        case CANT_ALLOCATE_MEMORY_FOR_STACK:
-            fprintf(stderr,
-                    "Can't allocate memory for stack.\n");
-            break;
-        case CANT_ALLOCATE_MEMORY:
-            fprintf(stderr,
-                    "Can't allocate memory.\n");
-            break;
-        case STACK_IS_EMPTY:
-            fprintf(stderr,
-                    "Can't pop element from stack. Stack is empty.\n");
-            break;
-        case SIZE_MORE_THAN_CAPACITY:
-            fprintf(stderr,
-                    "Size more than capacity.\n");
-            break;
-        default:
-            fprintf(stderr, "Unknown error code: %d.\n",
-                    error);
-            break;
-    }
+    if (!error)
+        fprintf(stderr,
+                "No errors.\n");
+    if (error & CANT_ALLOCATE_MEMORY_FOR_STACK)
+        fprintf(stderr,
+                "Can't allocate memory for stack.\n");
+    if (error & CANT_ALLOCATE_MEMORY)
+        fprintf(stderr,
+                "Can't allocate memory.\n");
+    if (error & STACK_IS_EMPTY)
+        fprintf(stderr,
+                "Can't pop element from stack. Stack is empty.\n");
+    if (error & SIZE_MORE_THAN_CAPACITY)
+        fprintf(stderr,
+                "Size more than capacity.\n");
+    if (error & POISON_PTR_ERR)
+        fprintf(stderr,
+                "Trying to write to poisoned pointer.\n");
+
+    if (error & POISONED_SIZE_ERR)
+        fprintf(stderr,
+                "Get poisoned stack size.\n");
+
+    if (error & POISONED_CAPACITY_ERR)
+        fprintf(stderr,
+                "Get poisoned stack capacity.\n");
+
 }
 
 void *recalloc(void *memory,
                size_t currentSize,
                size_t newSize,
-               Errors *error)
+               size_t *error)
 {
     if (error != nullptr and *error)
         return error;
@@ -55,23 +58,38 @@ void *recalloc(void *memory,
     return newMemory;
 }
 
-Errors stackVerifier(Stack *stack)
+size_t stackVerifier(Stack *stack)
 {
     assert(stack != nullptr);
 
-    Errors error = NO_ERRORS;
+    size_t error = NO_ERRORS;
+    if (stack->size == (size_t) POISON_INT_VALUE)
+    {
+        error |= POISONED_SIZE_ERR;
+    }
+
+    if (stack->capacity == (size_t) POISON_INT_VALUE)
+    {
+        error |= POISONED_CAPACITY_ERR;
+    }
+
     if (stack->size > stack->capacity)
     {
-        error = SIZE_MORE_THAN_CAPACITY;
+        error |= SIZE_MORE_THAN_CAPACITY;
+    }
+
+    if (stack->data == POISON_PTR or stack->data == nullptr)
+    {
+        error |= POISON_PTR_ERR;
     }
     return error;
 }
 
-Errors __stackCtor(Stack *stack, size_t numOfElements)
+size_t __stackCtor(Stack *stack, size_t numOfElements)
 {
     assert(stack != nullptr);
 
-    Errors error = NO_ERRORS;
+    size_t error = NO_ERRORS;
 
     stack->data = (Elem_t *) calloc(numOfElements, sizeof(Elem_t));
     if (stack->data == nullptr)
@@ -83,38 +101,41 @@ Errors __stackCtor(Stack *stack, size_t numOfElements)
     {
         stack->data[i] = POISON_VALUE;
     }
-
-    ASSERT_OK(stack)
+    ASSERT_OK(stack, &error)
 
     return error;
 }
 
-Errors stackPush(Stack *stack, Elem_t value)
+size_t stackPush(Stack *stack, Elem_t value)
 {
     assert(stack != nullptr);
 
-    Errors error = NO_ERRORS;
+    size_t error = NO_ERRORS;
 
-    ASSERT_OK(stack)
+    ASSERT_OK(stack, &error)
     if (error)
         return error;
 
     if (stack->size == stack->capacity)
         error = stackResize(stack);
+
+    if (error)
+        return error;
+
     stack->data[stack->size++] = value;
 
-    ASSERT_OK(stack)
+    ASSERT_OK(stack, &error)
 
     return error;
 }
 
-Errors stackPop(Stack *stack, Elem_t *value)
+size_t stackPop(Stack *stack, Elem_t *value)
 {
     assert(stack != nullptr);
     assert(value != nullptr);
 
-    Errors error = NO_ERRORS;
-    ASSERT_OK(stack)
+    size_t error = NO_ERRORS;
+    ASSERT_OK(stack, &error)
     if (error)
         return error;
 
@@ -129,33 +150,32 @@ Errors stackPop(Stack *stack, Elem_t *value)
     if (stack->size * 4 <= stack->capacity)
         error = stackResize(stack);
 
-    ASSERT_OK(stack)
+    ASSERT_OK(stack, &error)
 
     return error;
 }
 
-Errors stackDtor(Stack *stack)
+size_t stackDtor(Stack *stack)
 {
     assert(stack != nullptr);
 
-    Errors error = NO_ERRORS;
+    size_t error = NO_ERRORS;
 
-    ASSERT_OK(stack)
+    ASSERT_OK(stack, &error)
+
     if (error)
         return error;
 
     free(stack->data);
 
     stack->data = (Elem_t *) POISON_PTR;
-    stack->size = POISON_INT_VALUE;
-    stack->capacity = POISON_INT_VALUE;
-
-    ASSERT_OK(stack)
+    stack->size = (size_t) POISON_INT_VALUE;
+    stack->capacity = (size_t) POISON_INT_VALUE;
 
     return error;
 }
 
-Errors stackDump(Stack *stack, StackInfo *info)
+void stackDump(Stack *stack, StackInfo *info)
 {
     assert(stack != nullptr);
 
@@ -170,83 +190,77 @@ Errors stackDump(Stack *stack, StackInfo *info)
            stack->info.initFile,
            stack->info.initLine);
     printf("{\n"
-           "Size = %zu \n"
-           "Capacity = %zu \n"
-           "Data [%p] \n",
+           "    Size = %zu \n"
+           "    Capacity = %zu \n"
+           "    Data [%p] \n",
            stack->size,
            stack->capacity,
            stack->data);
+    if (stack->data == POISON_PTR or stack->data == nullptr)
+    {
+        printf("    Pointer poisoned.\n}\n");
+        return;
+    }
     for (size_t i = 0; i < stack->size; i++)
     {
-        printf("* [%zu] = %lg \n", i, stack->data[i]);
+        printf("    * [%zu] = %lg \n", i, stack->data[i]);
     }
     for (size_t i = stack->size; i < stack->capacity; i++)
     {
-        printf("  [%zu] = %lg (POISON) \n", i, stack->data[i]);
+        printf("      [%zu] = %lg (POISON) \n", i, stack->data[i]);
     }
     printf("}\n");
-    return NO_ERRORS;
 }
 
-Errors stackResize(Stack *stack)
+size_t stackResizeMemory(Stack *stack, size_t newStackCapacity)
+{
+    size_t error = 0;
+    Elem_t *newData =
+        (Elem_t *) recalloc(stack->data,
+                            sizeof(newData[0]) * stack->capacity,
+                            sizeof(newData[0]) * newStackCapacity,
+                            &error);
+    if (newData == nullptr)
+        return CANT_ALLOCATE_MEMORY_FOR_STACK;
+
+    stack->data = newData;
+    stack->capacity = newStackCapacity;
+
+    ASSERT_OK(stack, &error)
+    return error;
+}
+
+size_t stackResize(Stack *stack)
 {
     assert(stack != nullptr);
 
-    Errors error = NO_ERRORS;
+    size_t error = NO_ERRORS;
 
-    ASSERT_OK(stack)
+    ASSERT_OK(stack, &error)
 
     if (error)
         return error;
 
     if (stack->capacity == 0)
     {
-        stackCtor(stack, 1, &error)
+        error = stackResizeMemory(stack, 1);
         return error;
     }
     if (stack->size == stack->capacity)
     {
         size_t newStackCapacity = stack->capacity * 2;
-
-        Elem_t *newData =
-            (Elem_t *) recalloc(stack->data,
-                                sizeof(Elem_t) * stack->capacity,
-                                sizeof(Elem_t) * newStackCapacity,
-                                &error);
-        if (newData == nullptr)
-            return CANT_ALLOCATE_MEMORY_FOR_STACK;
-
-        stack->data = newData;
-        stack->capacity = newStackCapacity;
-
-        ASSERT_OK(stack)
-
+        error = stackResizeMemory(stack, newStackCapacity);
         return error;
     }
 
     if (stack->size * 4 <= stack->capacity)
     {
         size_t newStackCapacity = stack->capacity / 2;
-
-        Elem_t *newData =
-            (Elem_t *) recalloc(stack->data,
-                                sizeof(Elem_t) * stack->capacity,
-                                sizeof(Elem_t) * newStackCapacity,
-                                &error);
-        if (newData == nullptr)
-            return CANT_ALLOCATE_MEMORY_FOR_STACK;
-
-        stack->data = newData;
-        stack->capacity = newStackCapacity;
-
-        ASSERT_OK(stack)
-        if (error)
-            return error;
-
+        error = stackResizeMemory(stack, newStackCapacity);
         return error;
     }
 
-    ASSERT_OK(stack)
+    ASSERT_OK(stack, &error)
 
     return error;
 }

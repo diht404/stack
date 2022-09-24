@@ -4,30 +4,28 @@ int main()
 {
     Stack stack = {};
 
-    Errors error = NO_ERRORS;
+    size_t error = NO_ERRORS;
 
-    stackCtor(&stack, 0, &error);
-    if (error)
-        processError(error);
+    stackCtor(&stack, 0, &error)
 
-    for(int i=0; i<1024; i++)
+    for (int i = 0; i < 1024; i++)
     {
-        error = stackPush(&stack, 666);
-        if (error)
-            processError(error);
+        error = stackPush(&stack, i);
     }
-    for(int i=0; i<1000; i++)
+    for (int i = 0; i < 1000; i++)
     {
         Elem_t value = 0;
         error = stackPop(&stack, &value);
-        if (error)
-            processError(error);
     }
-
+    stack.size = 69;
     error = stackDtor(&stack);
-    if (error)
-        processError(error);
 
-//    stackPush(&stack, 69);
+    Elem_t value = POISON_INT_VALUE;
+    error = stackPop(&stack, &value);
+
+
+    error = stackPush(&stack, 69);
+
+
     return 0;
 }
