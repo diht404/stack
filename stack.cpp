@@ -28,5 +28,6 @@ int main()
     if (error)
         processError(error);
 
+//    stackPush(&stack, 69);
     return 0;
 }

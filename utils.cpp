@@ -147,8 +147,8 @@ Errors stackDtor(Stack *stack)
     free(stack->data);
 
     stack->data = (Elem_t *) POISON_PTR;
-    stack->size = POISON_SIZES;
-    stack->capacity = POISON_SIZES;
+    stack->size = POISON_INT_VALUE;
+    stack->capacity = POISON_INT_VALUE;
 
     ASSERT_OK(stack)
 
@@ -250,4 +250,3 @@ Errors stackResize(Stack *stack)
 
     return error;
 }
-
