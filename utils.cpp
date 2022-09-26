@@ -91,7 +91,7 @@ size_t __stackCtor(Stack *stack, size_t numOfElements)
 
     size_t error = NO_ERRORS;
 
-    stack->data = (Elem_t *) calloc(numOfElements, sizeof(Elem_t));
+    stack->data = (Elem_t *) calloc(numOfElements + 1, sizeof(stack->data[0]));
     if (stack->data == nullptr)
         return CANT_ALLOCATE_MEMORY_FOR_STACK;
     stack->size = 0;
