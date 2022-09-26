@@ -36,6 +36,8 @@ void *recalloc(void *memory,
                size_t newSize,
                size_t *error)
 {
+    assert(memory != nullptr);
+
     if (error != nullptr and *error)
         return error;
 
