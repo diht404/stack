@@ -310,7 +310,15 @@ void logStack(FILE* fp, const char *formatString, ...)
     va_end(args);
 }
 
-void stackDump(Stack *stack, StackInfo *info)
+void printElem_t(Elem_t value, FILE *fp)
+{
+    assert(fp != nullptr);
+
+    logStack(fp, "%lg \n", value);
+}
+
+
+void stackDump(Stack *stack, StackInfo *info, void (*print)(Elem_t, FILE *))
 {
     assert(stack != nullptr);
     assert(info != nullptr);
@@ -358,11 +366,14 @@ void stackDump(Stack *stack, StackInfo *info)
     }
     for (size_t i = 0; i < stack->size; i++)
     {
-        logStack(fp, "    * [%zu] = %lg \n", i, stack->data[i]);
+
+        logStack(fp, "    * [%zu] = ", i);
+        print(stack->data[i], fp);
     }
     for (size_t i = stack->size; i < stack->capacity; i++)
     {
-        logStack(fp, "      [%zu] = %lg (POISON) \n", i, stack->data[i]);
+        logStack(fp, "      [%zu] = ", i);
+        print(stack->data[i], fp);
     }
     logStack(fp, "}\n");
 }

@@ -203,13 +203,22 @@ size_t stackDtor(Stack *stack);
 size_t stackShrinkToFit(Stack *stack);
 
 /**
+ * @brief print Elem_t as double
+ *
+ * @param value Elem_t to print
+ * @param fp file to write
+ * @return void
+ */
+void printElem_t(Elem_t value, FILE *fp);
+
+/**
  * @brief generates dump of stack
  *
  * @param stack stack for dumping
  * @param info struct with info about stack
  * @return void
  */
-void stackDump(Stack *stack, StackInfo *info);
+void stackDump(Stack *stack, StackInfo *info, void (*print)(Elem_t, FILE *) = printElem_t);
 
 /**
  * @brief resizes stack to certain len
