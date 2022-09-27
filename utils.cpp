@@ -276,7 +276,7 @@ size_t stackDtor(Stack *stack)
         return error;
 # if (CanaryProtection)
     free(stack->data - sizeof(Canary));
-# else
+# else`
     free(stack->data);
 # endif
     stack->data = (Elem_t *) POISON_PTR;
