@@ -25,6 +25,7 @@ const uint64_t CANARY_START = 0x8BADF00D;
 const uint64_t CANARY_END = 0xBAADF00D;
 const uint64_t CANARY_POISONED = 0xDEADBEEF;
 # endif
+
 struct StackInfo
 {
 # if (CanaryProtection)
@@ -47,6 +48,7 @@ struct Stack
     size_t size = (size_t) POISON_INT_VALUE;
     size_t capacity = (size_t) POISON_INT_VALUE;
     StackInfo info = {};
+    FILE *logFile = (FILE *)POISON_PTR;
     bool alive = false;
 # if (HashProtection)
     size_t hash = 0;
@@ -101,9 +103,10 @@ size_t stackVerifier(Stack *stack);
  *
  * @param stack stack for constructing
  * @param numOfElements number of elements in stack
+ * @param logFile - file for stack logging
  * @return error code
  */
-size_t __stackCtor(Stack *stack, size_t numOfElements);
+size_t __stackCtor(Stack *stack, size_t numOfElements, FILE* logFile);
 
 /**
  * @brief macro constructor for stack
@@ -114,18 +117,18 @@ size_t __stackCtor(Stack *stack, size_t numOfElements);
  * @return void
  */
 # if (CanaryProtection)
-#define stackCtor(stack, numOfElements, error)                  \
+#define stackCtor(stack, numOfElements, error, logFile)         \
 {                                                               \
     (stack)->info = {CANARY_START,                              \
                       __LINE__, __FILE__, __PRETTY_FUNCTION__,  \
                       CANARY_END};                              \
-    *(error) = __stackCtor((stack), (numOfElements));           \
+    *(error) = __stackCtor((stack), (numOfElements), (logFile));\
 }
 # else
-#define stackCtor(stack, numOfElements, error)                  \
+#define stackCtor(stack, numOfElements, error, logFile)         \
 {                                                               \
     (stack)->info = {__LINE__, __FILE__, __PRETTY_FUNCTION__};  \
-    *(error) = __stackCtor((stack), (numOfElements));           \
+    *(error) = __stackCtor((stack), (numOfElements), (logFile));\
 }
 # endif
 
@@ -196,10 +199,9 @@ size_t stackDtor(Stack *stack);
  *
  * @param stack stack for dumping
  * @param info struct with info about stack
- * @param fp - file to write logs
  * @return void
  */
-void stackDump(Stack *stack, StackInfo *info, FILE *fp = stderr);
+void stackDump(Stack *stack, StackInfo *info);
 
 /**
  * @brief resizes stack to certain len

@@ -11,12 +11,12 @@ int main()
 {
     atexit(closeFile);
     Stack stack = {};
-    FILE *fp = fopen("logs.txt", "a");
+    FILE *fp = fopen("logs.txt", "w");
     if (fp == nullptr)
         return 1;
     size_t error = NO_ERRORS;
 
-    stackCtor(&stack, 0, &error)
+    stackCtor(&stack, 0, &error, fp)
 
     for (int i = 0; i < 1024; i++)
     {

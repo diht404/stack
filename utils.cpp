@@ -142,9 +142,10 @@ size_t stackVerifier(Stack *stack)
     return error;
 }
 
-size_t __stackCtor(Stack *stack, size_t numOfElements)
+size_t __stackCtor(Stack *stack, size_t numOfElements, FILE *logFile)
 {
     assert(stack != nullptr);
+    assert(logFile != nullptr);
 
     size_t error = NO_ERRORS;
 
@@ -184,9 +185,11 @@ size_t __stackCtor(Stack *stack, size_t numOfElements)
     stack->canary_start = CANARY_START;
     stack->canary_end = CANARY_END;
 # endif
+    stack->logFile = logFile;
 # if (HashProtection)
     stack->hash = stackHash(stack);
 #endif
+
     ASSERT_OK(stack, &error)
 
     return error;
@@ -295,11 +298,14 @@ void logStack(FILE* fp, const char *formatString, ...)
     va_end(args);
 }
 
-void stackDump(Stack *stack, StackInfo *info, FILE *fp)
+void stackDump(Stack *stack, StackInfo *info)
 {
     assert(stack != nullptr);
     assert(info != nullptr);
-    assert(fp != nullptr);
+
+    FILE *fp = stack->logFile;
+    if (fp == nullptr)
+        fp = stderr;
 
     logStack(fp, "Error in function '%s' at %s (%d)\n",
            info->initFunction,
