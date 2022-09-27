@@ -1,11 +1,25 @@
+#define HashProtection 1
+#define CanaryProtection 1
 #include "utils.h"
+
+FILE *fp = nullptr;
+void closeFile()
+{
+    if (fp != nullptr)
+        fclose(fp);
+}
+
+bool test_1();
+bool test_2();
+bool test_3();
+bool test_4();
 
 bool test_1()
 {
     Stack stack = {};
 
     size_t error = STACK_NO_ERRORS;
-    stackCtor(&stack, 0, &error)
+    stackCtor(&stack, 0, &error, fp)
 
     for (int i = 0; i < 1024; i++)
     {
@@ -26,7 +40,7 @@ bool test_2()
 
     size_t error = STACK_NO_ERRORS;
 
-    stackCtor(&stack, 0, &error)
+    stackCtor(&stack, 0, &error, fp)
 
     for (int i = 0; i < 1024; i++)
     {
@@ -49,7 +63,7 @@ bool test_3()
 
     size_t error = STACK_NO_ERRORS;
 
-    stackCtor(&stack, 0, &error)
+    stackCtor(&stack, 0, &error, fp)
 
     for (int i = 0; i < 1024; i++)
     {
@@ -76,7 +90,7 @@ bool test_4()
 
     size_t error = STACK_NO_ERRORS;
 
-    stackCtor(&stack, 0, &error)
+    stackCtor(&stack, 0, &error, fp)
 
     for (int i = 0; i < 1024; i++)
     {
@@ -95,6 +109,8 @@ bool test_4()
 
 int main()
 {
+    atexit(closeFile);
+    fp = fopen("logs_tests.txt", "a");
     assert(test_1());
     assert(test_2());
     assert(test_3());
