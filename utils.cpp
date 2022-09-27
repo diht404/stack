@@ -84,6 +84,11 @@ size_t stackVerifier(Stack *stack)
     {
         error |= POISON_PTR_ERR;
     }
+
+    if (stack->hash != stackHash(stack))
+    {
+        error |= INCORRECT_HASH;
+    }
     return error;
 }
 
@@ -103,6 +108,8 @@ size_t __stackCtor(Stack *stack, size_t numOfElements)
     {
         stack->data[i] = POISON_VALUE;
     }
+    stack->hash = stackHash(stack);
+
     ASSERT_OK(stack, &error)
 
     return error;
@@ -125,6 +132,7 @@ size_t stackPush(Stack *stack, Elem_t value)
         return error;
 
     stack->data[stack->size++] = value;
+    stack->hash = stackHash(stack);
 
     ASSERT_OK(stack, &error)
 
@@ -148,9 +156,17 @@ size_t stackPop(Stack *stack, Elem_t *value)
     }
 
     *value = stack->data[stack->size--];
+    stack->hash = stackHash(stack);
 
     if (stack->size * 4 <= stack->capacity)
         error = stackResize(stack);
+//    if (stack->hash != stackHash(stack))
+//    {
+//        printf("HASH: %zu\n", stack->hash);
+//        printf("Correct HASH: %zu\n", stackHash(stack));
+//    }
+
+    stack->hash = stackHash(stack);
 
     ASSERT_OK(stack, &error)
 
@@ -173,6 +189,7 @@ size_t stackDtor(Stack *stack)
     stack->data = (Elem_t *) POISON_PTR;
     stack->size = (size_t) POISON_INT_VALUE;
     stack->capacity = (size_t) POISON_INT_VALUE;
+    stack->hash = (size_t) POISON_INT_VALUE;
 
     return error;
 }
@@ -194,9 +211,13 @@ void stackDump(Stack *stack, StackInfo *info)
     printf("{\n"
            "    Size = %zu \n"
            "    Capacity = %zu \n"
+           "    Hash = %zu \n"
+           "    Correct Hash = %zu \n"
            "    Data [%p] \n",
            stack->size,
            stack->capacity,
+           stackHash(stack),
+           stack->hash,
            stack->data);
     if (stack->data == POISON_PTR or stack->data == nullptr)
     {
@@ -227,6 +248,7 @@ size_t stackResizeMemory(Stack *stack, size_t newStackCapacity)
 
     stack->data = newData;
     stack->capacity = newStackCapacity;
+    stack->hash = stackHash(stack);
 
     ASSERT_OK(stack, &error)
     return error;
@@ -266,3 +288,27 @@ size_t stackResize(Stack *stack)
 
     return error;
 }
+
+size_t hashData(void *data, size_t size)
+{
+    assert(data != nullptr);
+
+    size_t hash = 5381;
+    for (int i = 0; i < size; i++)
+    {
+        hash = 33 * hash + ((char *)data)[i];
+    }
+    return hash;
+}
+
+size_t stackHash(Stack *stack)
+{
+    assert(stack != nullptr);
+
+    size_t old_hash = stack->hash;
+    stack->hash = 0;
+    size_t hash = hashData(stack, sizeof(*stack));
+    stack->hash = old_hash;
+    return hash;
+}
+

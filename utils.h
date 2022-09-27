@@ -23,6 +23,7 @@ struct Stack
     size_t size = (size_t) POISON_INT_VALUE;
     size_t capacity = (size_t) POISON_INT_VALUE;
     StackInfo info = {};
+    size_t hash = 0;
 };
 
 enum Errors
@@ -35,6 +36,7 @@ enum Errors
     POISON_PTR_ERR = 1 << 4,
     POISONED_SIZE_ERR = 1 << 5,
     POISONED_CAPACITY_ERR = 1 << 6,
+    INCORRECT_HASH = 1 << 7,
 };
 
 void processError(size_t error);
@@ -152,3 +154,7 @@ size_t stackResizeMemory(Stack *stack, size_t newStackCapacity);
  * @return error code
  */
 size_t stackResize(Stack *stack);
+
+size_t hashData(void *data, size_t size);
+
+size_t stackHash(Stack *stack);

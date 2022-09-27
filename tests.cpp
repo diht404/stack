@@ -88,7 +88,7 @@ bool test_4()
         error = stackPop(&stack, &value);
     }
     stack.size = -69;
-    stack.size = -69;
+    stack.capacity = -69;
     error = stackDtor(&stack);
     return true;
 }
