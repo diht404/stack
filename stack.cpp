@@ -1,9 +1,19 @@
 #include "utils.h"
 
+FILE *fp = nullptr;
+void closeFile()
+{
+    if (fp != nullptr)
+        fclose(fp);
+}
+
 int main()
 {
+    atexit(closeFile);
     Stack stack = {};
-
+    FILE *fp = fopen("logs.txt", "a");
+    if (fp == nullptr)
+        return 1;
     size_t error = NO_ERRORS;
 
     stackCtor(&stack, 0, &error)

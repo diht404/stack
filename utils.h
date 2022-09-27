@@ -4,6 +4,7 @@
 #include "assert.h"
 #include "string.h"
 #include "math.h"
+#include <cstdarg>
 
 #ifndef CanaryProtection
 #define CanaryProtection 1
@@ -47,7 +48,7 @@ struct Stack
     size_t capacity = (size_t) POISON_INT_VALUE;
     StackInfo info = {};
     bool alive = false;
-# if (CanaryProtection)
+# if (HashProtection)
     size_t hash = 0;
 # endif
 # if (CanaryProtection)
@@ -194,9 +195,11 @@ size_t stackDtor(Stack *stack);
  * @brief generates dump of stack
  *
  * @param stack stack for dumping
+ * @param info struct with info about stack
+ * @param fp - file to write logs
  * @return void
  */
-void stackDump(Stack *stack, StackInfo *info);
+void stackDump(Stack *stack, StackInfo *info, FILE *fp = stderr);
 
 /**
  * @brief resizes stack to certain len
