@@ -284,22 +284,35 @@ size_t stackDtor(Stack *stack)
     return error;
 }
 
-void stackDump(Stack *stack, StackInfo *info)
+void logStack(FILE* fp, const char *formatString, ...)
+{
+    assert(fp != nullptr);
+    assert(formatString != nullptr);
+
+    va_list args;
+    va_start(args, formatString);
+    vfprintf(fp, formatString, args);
+    va_end(args);
+}
+
+void stackDump(Stack *stack, StackInfo *info, FILE *fp)
 {
     assert(stack != nullptr);
+    assert(info != nullptr);
+    assert(fp != nullptr);
 
-    printf("Error in function '%s' at %s (%d)\n",
+    logStack(fp, "Error in function '%s' at %s (%d)\n",
            info->initFunction,
            info->initFile,
            info->initLine);
 
-    printf("Stack [%p] was initialized at %s at %s (%d)\n",
+    logStack(fp, "Stack [%p] was initialized at %s at %s (%d)\n",
            stack,
            stack->info.initFunction,
            stack->info.initFile,
            stack->info.initLine);
 # if (HashProtection)
-    printf("{\n"
+    logStack(fp, "{\n"
            "    Size = %zu \n"
            "    Capacity = %zu \n"
            "    Hash = %zu \n"
@@ -311,7 +324,7 @@ void stackDump(Stack *stack, StackInfo *info)
            stack->hash,
            stack->data);
 #else
-    printf("{\n"
+    logStack(fp, "{\n"
            "    Size = %zu \n"
            "    Capacity = %zu \n"
            "    Data [%p] \n",
@@ -322,18 +335,18 @@ void stackDump(Stack *stack, StackInfo *info)
 
     if (stack->data == POISON_PTR or stack->data == nullptr)
     {
-        printf("    Pointer poisoned.\n}\n");
+        logStack(fp, "    Pointer poisoned.\n}\n");
         return;
     }
     for (size_t i = 0; i < stack->size; i++)
     {
-        printf("    * [%zu] = %lg \n", i, stack->data[i]);
+        logStack(fp, "    * [%zu] = %lg \n", i, stack->data[i]);
     }
     for (size_t i = stack->size; i < stack->capacity; i++)
     {
-        printf("      [%zu] = %lg (POISON) \n", i, stack->data[i]);
+        logStack(fp, "      [%zu] = %lg (POISON) \n", i, stack->data[i]);
     }
-    printf("}\n");
+    logStack(fp, "}\n");
 }
 
 size_t stackResizeMemory(Stack *stack, size_t newStackCapacity)
