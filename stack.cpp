@@ -11,7 +11,7 @@ int main()
 {
     atexit(closeFile);
     Stack stack = {};
-    FILE *fp = fopen("logs.txt", "w");
+    fp = stderr;//fopen("logs.txt", "w");
     if (fp == nullptr)
         return 1;
     size_t error = NO_ERRORS;
