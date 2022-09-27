@@ -1,6 +1,5 @@
-//#define CanaryProtection 1
-//#define HashProtection 1
-
+#define HashProtection 1
+#define CanaryProtection 1
 #include "utils.h"
 
 FILE *fp = nullptr;
@@ -14,7 +13,7 @@ int main()
 {
     atexit(closeFile);
     Stack stack = {};
-    fp = stderr;//fopen("logs.txt", "w");
+    fp = fopen("logs.txt", "w");
     if (fp == nullptr)
         return 1;
     size_t error = STACK_NO_ERRORS;
@@ -31,14 +30,14 @@ int main()
         error = stackPop(&stack, &value);
     }
     stackShrinkToFit(&stack);
-    stack.size = 69;
+    stack.size = 666;
 
     error = stackDtor(&stack);
 
     Elem_t value = POISON_INT_VALUE;
     error = stackPop(&stack, &value);
 
-    error = stackPush(&stack, 69);
+    error = stackPush(&stack, 666);
 
     return 0;
 }

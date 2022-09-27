@@ -6,8 +6,13 @@
 #include "math.h"
 #include <cstdarg>
 
-#define CanaryProtection 1
-#define HashProtection 1
+#ifndef CanaryProtection
+#define CanaryProtection 0
+#endif
+
+#ifndef HashProtection
+#define HashProtection 0
+#endif
 
 typedef double Elem_t;
 typedef uint64_t Canary;
@@ -15,30 +20,25 @@ const Elem_t POISON_VALUE = NAN;
 const int POISON_INT_VALUE = -7;
 const Elem_t *const POISON_PTR = &POISON_VALUE;
 const char *const POISON_STRING = "1000-7";
-# if (CanaryProtection)
+
+#if (CanaryProtection)
 const uint64_t CANARY_START = 0x8BADF00D;
 const uint64_t CANARY_END = 0xBAADF00D;
 const uint64_t CANARY_POISONED = 0xDEADBEEF;
-# endif
+#endif
 
 struct StackInfo
 {
-# if (CanaryProtection)
-    Canary canary_start = CANARY_START;
-# endif
     int initLine = POISON_INT_VALUE;
     const char *initFile = POISON_STRING;
     const char *initFunction = POISON_STRING;
-# if (CanaryProtection)
-    Canary canary_end = CANARY_END;
-# endif
 };
 
 struct Stack
 {
-# if (CanaryProtection)
+#if (CanaryProtection)
     Canary canary_start = CANARY_START;
-# endif
+#endif
     Elem_t *data = (Elem_t *) POISON_PTR;
 
     size_t capacity = (size_t) POISON_INT_VALUE;
@@ -47,12 +47,12 @@ struct Stack
     StackInfo info = {};
     FILE *logFile = (FILE *) POISON_PTR;
     bool alive = false;
-# if (HashProtection)
+#if (HashProtection)
     size_t hash = 0;
-# endif
-# if (CanaryProtection)
+#endif
+#if (CanaryProtection)
     Canary canary_end = CANARY_END;
-# endif
+#endif
 };
 
 enum Errors
@@ -61,17 +61,21 @@ enum Errors
     CANT_ALLOCATE_MEMORY_FOR_STACK = 1 << 0,
     CANT_ALLOCATE_MEMORY = 1 << 1,
     STACK_IS_EMPTY = 1 << 2,
-    SIZE_MORE_THAN_CAPACITY = 1 << 3,
-    POISON_PTR_ERR = 1 << 4,
-    POISONED_SIZE_ERR = 1 << 5,
-    POISONED_CAPACITY_ERR = 1 << 6,
-    INCORRECT_HASH = 1 << 7,
-    NOT_ALIVE = 1 << 8,
-    START_STRUCT_CANARY_DEAD = 1 << 9,
-    START_STRUCT_CANARY_POISONED = 1 << 10,
+    STACK_SIZE_MORE_THAN_CAPACITY = 1 << 3,
+    STACK_POISON_PTR_ERR = 1 << 4,
+    STACK_POISONED_SIZE_ERR = 1 << 5,
+    STACK_POISONED_CAPACITY_ERR = 1 << 6,
+    STACK_INCORRECT_HASH = 1 << 7,
+    STACK_NOT_ALIVE = 1 << 8,
+    STACK_START_STRUCT_CANARY_DEAD = 1 << 9,
+    STACK_START_STRUCT_CANARY_POISONED = 1 << 10,
+    STACK_END_STRUCT_CANARY_DEAD = 1 << 11,
+    STACK_END_STRUCT_CANARY_POISONED = 1 << 12,
+    STACK_START_DATA_CANARY_DEAD = 1 << 13,
+    STACK_START_DATA_CANARY_POISONED = 1 << 14,
+    STACK_END_DATA_CANARY_DEAD = 1 << 15,
+    STACK_END_DATA_CANARY_POISONED = 1 << 16,
 };
-
-void processError(size_t error);
 
 /**
  * @brief Recalloc implementation
@@ -88,14 +92,6 @@ void *recalloc(void *memory,
                size_t *error = nullptr);
 
 /**
- * @brief Checks if stack is correct
- *
- * @param stack stack for checking
- * @return error code
- */
-size_t stackVerifier(Stack *stack);
-
-/**
  * @brief constructor for stack
  *
  * @param stack stack for constructing
@@ -103,7 +99,7 @@ size_t stackVerifier(Stack *stack);
  * @param logFile - file for stack logging
  * @return error code
  */
-size_t stackCtor__(Stack *stack, size_t numOfElements, FILE* logFile);
+size_t stackCtor__(Stack *stack, size_t numOfElements, FILE *logFile);
 
 /**
  * @brief macro constructor for stack
@@ -113,58 +109,13 @@ size_t stackCtor__(Stack *stack, size_t numOfElements, FILE* logFile);
  * @param error error code
  * @return void
  */
-# if (CanaryProtection)
-#define stackCtor(stack, numOfElements, error, logFile)         \
-{                                                               \
-    (stack)->info = {CANARY_START,                              \
-                      __LINE__, __FILE__, __PRETTY_FUNCTION__,  \
-                      CANARY_END};                              \
-    *(error) = stackCtor__((stack), (numOfElements), (logFile));\
-}
-# else
+
 #define stackCtor(stack, numOfElements, error, logFile)         \
 {                                                               \
     (stack)->info = {__LINE__, __FILE__, __PRETTY_FUNCTION__};  \
     *(error) = stackCtor__((stack), (numOfElements), (logFile));\
 }
-# endif
 
-/**
- * @brief macro for checking if stack is correct
- *
- * @param stack stack for checking
- * @return void
- */
-
-#if (CanaryProtection)
-#define ASSERT_OK(stack, error)                                 \
-{                                                               \
-    StackInfo info = {CANARY_START,                             \
-                      __LINE__, __FILE__, __PRETTY_FUNCTION__,  \
-                      CANARY_END};                              \
-    *(error) = stackVerifier((stack));                          \
-    if (*(error))                                               \
-    {                                                           \
-        stackDump((stack), &(info), *(error), printElem_t);     \
-    }                                                           \
-}
-# else
-/**
- * @brief macro for checking if stack is correct
- *
- * @param stack stack for checking
- * @return void
- */
-#define ASSERT_OK(stack, error)                                 \
-{                                                               \
-    StackInfo info = {__LINE__, __FILE__, __PRETTY_FUNCTION__}; \
-    *(error) = stackVerifier((stack));                          \
-    if (*(error))                                               \
-    {                                                           \
-        stackDump((stack), &(info), *(error), printElem_t);     \
-    }                                                           \
-}
-# endif
 /**
  * @brief pushes element to stack
  *
@@ -184,38 +135,12 @@ size_t stackPush(Stack *stack, Elem_t value);
 size_t stackPop(Stack *stack, Elem_t *value);
 
 /**
- * @brief destructor for stack
- *
- * @param stack stack for destructing
- * @return error code
- */
-size_t stackDtor(Stack *stack);
-
-/**
  * @brief shrink stack to size
  *
  * @param stack stack to shrink
  * @return error code
  */
 size_t stackShrinkToFit(Stack *stack);
-
-/**
- * @brief print Elem_t as double
- *
- * @param value Elem_t to print
- * @param fp file to write
- * @return void
- */
-void printElem_t(Elem_t value, FILE *fp);
-
-/**
- * @brief generates dump of stack
- *
- * @param stack stack for dumping
- * @param info struct with info about stack
- * @return void
- */
-void stackDump(Stack *stack, StackInfo *info, size_t error, void (*print)(Elem_t, FILE *) = printElem_t);
 
 /**
  * @brief resizes stack to certain len
@@ -234,7 +159,7 @@ size_t stackResizeMemory(Stack *stack, size_t newStackCapacity);
  */
 size_t stackResize(Stack *stack);
 
-# if (HashProtection)
+#if (HashProtection)
 /**
  * @brief hashes data
  *
@@ -251,4 +176,67 @@ size_t hashData(void *data, size_t size);
  * @return hash of stack
  */
 size_t stackHash(Stack *stack);
-# endif
+#endif
+
+/**
+ * @brief destructor for stack
+ *
+ * @param stack stack for destructing
+ * @return error code
+ */
+size_t stackDtor(Stack *stack);
+
+/**
+ * @brief Checks if stack is correct
+ *
+ * @param stack stack for checking
+ * @return error code
+ */
+size_t stackVerifier(Stack *stack);
+
+/**
+ *
+ * @param fp file for logs
+ * @param formatString formatting string to log
+ * @param ... argument of formattim string
+ */
+void logStack(FILE *fp, const char *formatString, ...);
+
+/**
+ * @brief print Elem_t as double
+ *
+ * @param value Elem_t to print
+ * @param fp file to write
+ * @return void
+ */
+void printElem_t(Elem_t value, FILE *fp);
+
+/**
+ * @brief generates dump of stack
+ *
+ * @param stack stack for dumping
+ * @param info struct with info about stack
+ * @return void
+ */
+void stackDump(Stack *stack,
+               StackInfo *info,
+               size_t error,
+               void (*print)(Elem_t, FILE *) = printElem_t);
+
+/**
+ * @brief macro for checking if stack is correct
+ *
+ * @param stack stack for checking
+ * @return void
+ */
+#define ASSERT_OK(stack, error)                                 \
+{                                                               \
+    StackInfo info = {__LINE__, __FILE__, __PRETTY_FUNCTION__}; \
+    *(error) = stackVerifier((stack));                          \
+    if (*(error))                                               \
+    {                                                           \
+        stackDump((stack), &(info), *(error), printElem_t);     \
+    }                                                           \
+}
+
+void processError(FILE *fp, size_t error);
