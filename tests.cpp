@@ -4,7 +4,7 @@ bool test_1()
 {
     Stack stack = {};
 
-    size_t error = NO_ERRORS;
+    size_t error = STACK_NO_ERRORS;
     stackCtor(&stack, 0, &error)
 
     for (int i = 0; i < 1024; i++)
@@ -24,7 +24,7 @@ bool test_2()
 {
     Stack stack = {};
 
-    size_t error = NO_ERRORS;
+    size_t error = STACK_NO_ERRORS;
 
     stackCtor(&stack, 0, &error)
 
@@ -47,7 +47,7 @@ bool test_3()
 {
     Stack stack = {};
 
-    size_t error = NO_ERRORS;
+    size_t error = STACK_NO_ERRORS;
 
     stackCtor(&stack, 0, &error)
 
@@ -74,7 +74,7 @@ bool test_4()
 {
     Stack stack = {};
 
-    size_t error = NO_ERRORS;
+    size_t error = STACK_NO_ERRORS;
 
     stackCtor(&stack, 0, &error)
 

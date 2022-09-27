@@ -29,6 +29,21 @@ void processError(size_t error)
         fprintf(stderr,
                 "Get poisoned stack capacity.\n");
 
+    if (error & INCORRECT_HASH)
+        fprintf(stderr,
+                "Incorrect hash.\n");
+
+    if (error & NOT_ALIVE)
+        fprintf(stderr,
+                "Stack not alive. Can't push and pop.\n");
+
+    if (error & START_STRUCT_CANARY_DEAD)
+        fprintf(stderr,
+                "Canary was destroyed.\n");
+
+    if (error & START_STRUCT_CANARY_POISONED)
+        fprintf(stderr,
+                "Canary was poisoned.\n");
 }
 
 void *recalloc(void *memory,
@@ -55,7 +70,7 @@ void *recalloc(void *memory,
                newSize - currentSize);
 
     if (error != nullptr)
-        *error = NO_ERRORS;
+        *error = STACK_NO_ERRORS;
 
     return newMemory;
 }
@@ -64,7 +79,7 @@ size_t stackVerifier(Stack *stack)
 {
     assert(stack != nullptr);
 
-    size_t error = NO_ERRORS;
+    size_t error = STACK_NO_ERRORS;
     if (stack->size == (size_t) POISON_INT_VALUE)
     {
         error |= POISONED_SIZE_ERR;
@@ -142,15 +157,16 @@ size_t stackVerifier(Stack *stack)
     return error;
 }
 
-size_t __stackCtor(Stack *stack, size_t numOfElements, FILE *logFile)
+size_t stackCtor__(Stack *stack, size_t numOfElements, FILE *logFile)
 {
     assert(stack != nullptr);
     assert(logFile != nullptr);
 
-    size_t error = NO_ERRORS;
+    size_t error = STACK_NO_ERRORS;
 
-    size_t dataSize = (numOfElements) * sizeof(Elem_t);
+
 #if (CanaryProtection)
+    size_t dataSize = (numOfElements) * sizeof(Elem_t);
     char *canary_data_canary = (char *) calloc(
         dataSize + 2 * sizeof(Canary), 1);
     stack->data = (Elem_t *) (canary_data_canary + sizeof(Canary));
@@ -180,10 +196,10 @@ size_t __stackCtor(Stack *stack, size_t numOfElements, FILE *logFile)
 
 # if (CanaryProtection)
     stack->info.canary_start = CANARY_START;
-    stack->info.canary_end = CANARY_END;
+    stack->info.canary_end   = CANARY_END;
 
-    stack->canary_start = CANARY_START;
-    stack->canary_end = CANARY_END;
+    stack->canary_start      = CANARY_START;
+    stack->canary_end        = CANARY_END;
 # endif
     stack->logFile = logFile;
 # if (HashProtection)
@@ -199,7 +215,7 @@ size_t stackPush(Stack *stack, Elem_t value)
 {
     assert(stack != nullptr);
 
-    size_t error = NO_ERRORS;
+    size_t error = STACK_NO_ERRORS;
 
     ASSERT_OK(stack, &error)
     if (error)
@@ -225,7 +241,7 @@ size_t stackPop(Stack *stack, Elem_t *value)
     assert(stack != nullptr);
     assert(value != nullptr);
 
-    size_t error = NO_ERRORS;
+    size_t error = STACK_NO_ERRORS;
     ASSERT_OK(stack, &error)
     if (error)
         return error;
@@ -256,7 +272,7 @@ size_t stackShrinkToFit(Stack *stack)
 {
     assert(stack != nullptr);
 
-    size_t error = NO_ERRORS;
+    size_t error = STACK_NO_ERRORS;
     error = stackResizeMemory(stack, stack->size);
     if (error)
         return error;
@@ -268,7 +284,7 @@ size_t stackDtor(Stack *stack)
 {
     assert(stack != nullptr);
 
-    size_t error = NO_ERRORS;
+    size_t error = STACK_NO_ERRORS;
 
     ASSERT_OK(stack, &error)
 
@@ -318,7 +334,7 @@ void printElem_t(Elem_t value, FILE *fp)
 }
 
 
-void stackDump(Stack *stack, StackInfo *info, void (*print)(Elem_t, FILE *))
+void stackDump(Stack *stack, StackInfo *info, size_t error, void (*print)(Elem_t, FILE *))
 {
     assert(stack != nullptr);
     assert(info != nullptr);
@@ -376,6 +392,7 @@ void stackDump(Stack *stack, StackInfo *info, void (*print)(Elem_t, FILE *))
         print(stack->data[i], fp);
     }
     logStack(fp, "}\n");
+    processError(error);
 }
 
 size_t stackResizeMemory(Stack *stack, size_t newStackCapacity)
@@ -424,7 +441,7 @@ size_t stackResize(Stack *stack)
 {
     assert(stack != nullptr);
 
-    size_t error = NO_ERRORS;
+    size_t error = STACK_NO_ERRORS;
 
     ASSERT_OK(stack, &error)
 

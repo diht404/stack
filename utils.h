@@ -6,13 +6,8 @@
 #include "math.h"
 #include <cstdarg>
 
-#ifndef CanaryProtection
 #define CanaryProtection 1
-#endif
-
-#ifndef HashProtection
 #define HashProtection 1
-#endif
 
 typedef double Elem_t;
 typedef uint64_t Canary;
@@ -45,10 +40,12 @@ struct Stack
     Canary canary_start = CANARY_START;
 # endif
     Elem_t *data = (Elem_t *) POISON_PTR;
-    size_t size = (size_t) POISON_INT_VALUE;
+
     size_t capacity = (size_t) POISON_INT_VALUE;
+    size_t size = (size_t) POISON_INT_VALUE;
+
     StackInfo info = {};
-    FILE *logFile = (FILE *)POISON_PTR;
+    FILE *logFile = (FILE *) POISON_PTR;
     bool alive = false;
 # if (HashProtection)
     size_t hash = 0;
@@ -60,7 +57,7 @@ struct Stack
 
 enum Errors
 {
-    NO_ERRORS = 0,
+    STACK_NO_ERRORS = 0,
     CANT_ALLOCATE_MEMORY_FOR_STACK = 1 << 0,
     CANT_ALLOCATE_MEMORY = 1 << 1,
     STACK_IS_EMPTY = 1 << 2,
@@ -106,7 +103,7 @@ size_t stackVerifier(Stack *stack);
  * @param logFile - file for stack logging
  * @return error code
  */
-size_t __stackCtor(Stack *stack, size_t numOfElements, FILE* logFile);
+size_t stackCtor__(Stack *stack, size_t numOfElements, FILE* logFile);
 
 /**
  * @brief macro constructor for stack
@@ -122,13 +119,13 @@ size_t __stackCtor(Stack *stack, size_t numOfElements, FILE* logFile);
     (stack)->info = {CANARY_START,                              \
                       __LINE__, __FILE__, __PRETTY_FUNCTION__,  \
                       CANARY_END};                              \
-    *(error) = __stackCtor((stack), (numOfElements), (logFile));\
+    *(error) = stackCtor__((stack), (numOfElements), (logFile));\
 }
 # else
 #define stackCtor(stack, numOfElements, error, logFile)         \
 {                                                               \
     (stack)->info = {__LINE__, __FILE__, __PRETTY_FUNCTION__};  \
-    *(error) = __stackCtor((stack), (numOfElements), (logFile));\
+    *(error) = stackCtor__((stack), (numOfElements), (logFile));\
 }
 # endif
 
@@ -148,7 +145,7 @@ size_t __stackCtor(Stack *stack, size_t numOfElements, FILE* logFile);
     *(error) = stackVerifier((stack));                          \
     if (*(error))                                               \
     {                                                           \
-        stackDump((stack), &(info));                            \
+        stackDump((stack), &(info), *(error), printElem_t);     \
     }                                                           \
 }
 # else
@@ -164,7 +161,7 @@ size_t __stackCtor(Stack *stack, size_t numOfElements, FILE* logFile);
     *(error) = stackVerifier((stack));                          \
     if (*(error))                                               \
     {                                                           \
-        stackDump((stack), &(info));                            \
+        stackDump((stack), &(info), *(error), printElem_t);     \
     }                                                           \
 }
 # endif
@@ -218,7 +215,7 @@ void printElem_t(Elem_t value, FILE *fp);
  * @param info struct with info about stack
  * @return void
  */
-void stackDump(Stack *stack, StackInfo *info, void (*print)(Elem_t, FILE *) = printElem_t);
+void stackDump(Stack *stack, StackInfo *info, size_t error, void (*print)(Elem_t, FILE *) = printElem_t);
 
 /**
  * @brief resizes stack to certain len
