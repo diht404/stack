@@ -5,35 +5,54 @@
 #include "string.h"
 #include "math.h"
 
+#ifndef CanaryProtection
+#define CanaryProtection 1
+#endif
+
+#ifndef HashProtection
+#define HashProtection 1
+#endif
+
 typedef double Elem_t;
 typedef uint64_t Canary;
 const Elem_t POISON_VALUE = NAN;
 const int POISON_INT_VALUE = -7;
 const Elem_t *const POISON_PTR = &POISON_VALUE;
 const char *const POISON_STRING = "1000-7";
+# if (CanaryProtection)
 const uint64_t CANARY_START = 0x8BADF00D;
 const uint64_t CANARY_END = 0xBAADF00D;
 const uint64_t CANARY_POISONED = 0xDEADBEEF;
-
+# endif
 struct StackInfo
 {
+# if (CanaryProtection)
     Canary canary_start = CANARY_START;
+# endif
     int initLine = POISON_INT_VALUE;
     const char *initFile = POISON_STRING;
     const char *initFunction = POISON_STRING;
+# if (CanaryProtection)
     Canary canary_end = CANARY_END;
+# endif
 };
 
 struct Stack
 {
+# if (CanaryProtection)
     Canary canary_start = CANARY_START;
+# endif
     Elem_t *data = (Elem_t *) POISON_PTR;
     size_t size = (size_t) POISON_INT_VALUE;
     size_t capacity = (size_t) POISON_INT_VALUE;
     StackInfo info = {};
     bool alive = false;
+# if (CanaryProtection)
     size_t hash = 0;
+# endif
+# if (CanaryProtection)
     Canary canary_end = CANARY_END;
+# endif
 };
 
 enum Errors
@@ -93,14 +112,42 @@ size_t __stackCtor(Stack *stack, size_t numOfElements);
  * @param error error code
  * @return void
  */
-#define stackCtor(stack, numOfElements, error)            \
-{                                                         \
-    (stack)->info.initFile = __FILE__;                    \
-    (stack)->info.initFunction = __PRETTY_FUNCTION__;     \
-    (stack)->info.initLine = __LINE__;                    \
-    *(error) = __stackCtor((stack), (numOfElements));     \
+# if (CanaryProtection)
+#define stackCtor(stack, numOfElements, error)                  \
+{                                                               \
+    (stack)->info = {CANARY_START,                              \
+                      __LINE__, __FILE__, __PRETTY_FUNCTION__,  \
+                      CANARY_END};                              \
+    *(error) = __stackCtor((stack), (numOfElements));           \
 }
+# else
+#define stackCtor(stack, numOfElements, error)                  \
+{                                                               \
+    (stack)->info = {__LINE__, __FILE__, __PRETTY_FUNCTION__};  \
+    *(error) = __stackCtor((stack), (numOfElements));           \
+}
+# endif
 
+/**
+ * @brief macro for checking if stack is correct
+ *
+ * @param stack stack for checking
+ * @return void
+ */
+
+#if (CanaryProtection)
+#define ASSERT_OK(stack, error)                                 \
+{                                                               \
+    StackInfo info = {CANARY_START,                             \
+                      __LINE__, __FILE__, __PRETTY_FUNCTION__,  \
+                      CANARY_END};                              \
+    *(error) = stackVerifier((stack));                          \
+    if (*(error))                                               \
+    {                                                           \
+        stackDump((stack), &(info));                            \
+    }                                                           \
+}
+# else
 /**
  * @brief macro for checking if stack is correct
  *
@@ -109,15 +156,14 @@ size_t __stackCtor(Stack *stack, size_t numOfElements);
  */
 #define ASSERT_OK(stack, error)                                 \
 {                                                               \
-    StackInfo info = {0x8BADF00D,                               \
-    __LINE__, __FILE__, __PRETTY_FUNCTION__, 0xBAADF00D};       \
+    StackInfo info = {__LINE__, __FILE__, __PRETTY_FUNCTION__}; \
     *(error) = stackVerifier((stack));                          \
     if (*(error))                                               \
     {                                                           \
         stackDump((stack), &(info));                            \
     }                                                           \
 }
-
+# endif
 /**
  * @brief pushes element to stack
  *
@@ -169,6 +215,8 @@ size_t stackResizeMemory(Stack *stack, size_t newStackCapacity);
  */
 size_t stackResize(Stack *stack);
 
+# if (HashProtection)
 size_t hashData(void *data, size_t size);
 
 size_t stackHash(Stack *stack);
+# endif

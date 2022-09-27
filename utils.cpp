@@ -85,16 +85,19 @@ size_t stackVerifier(Stack *stack)
         error |= POISON_PTR_ERR;
     }
 
+# if (HashProtection)
     if (stack->hash != stackHash(stack))
     {
         error |= INCORRECT_HASH;
     }
+# endif
 
     if (!stack->alive)
     {
         error |= NOT_ALIVE;
     }
 
+# if (CanaryProtection)
     if (stack->canary_start != CANARY_START)
     {
         if (stack->canary_start == CANARY_POISONED)
@@ -134,6 +137,7 @@ size_t stackVerifier(Stack *stack)
         else
             error |= START_STRUCT_CANARY_DEAD;
     }
+# endif
 
     return error;
 }
@@ -144,7 +148,8 @@ size_t __stackCtor(Stack *stack, size_t numOfElements)
 
     size_t error = NO_ERRORS;
 
-    stack->data = (Elem_t *) calloc(numOfElements + 1, sizeof(stack->data[0]));
+    stack->data =
+        (Elem_t *) calloc(numOfElements + 1, sizeof(stack->data[0]));
     if (stack->data == nullptr)
         return CANT_ALLOCATE_MEMORY_FOR_STACK;
     stack->size = 0;
@@ -156,14 +161,16 @@ size_t __stackCtor(Stack *stack, size_t numOfElements)
     }
     stack->alive = true;
 
+# if (CanaryProtection)
     stack->info.canary_start = CANARY_START;
     stack->info.canary_end = CANARY_END;
 
     stack->canary_start = CANARY_START;
     stack->canary_end = CANARY_END;
-
+# endif
+# if (HashProtection)
     stack->hash = stackHash(stack);
-
+#endif
     ASSERT_OK(stack, &error)
 
     return error;
@@ -186,8 +193,9 @@ size_t stackPush(Stack *stack, Elem_t value)
         return error;
 
     stack->data[stack->size++] = value;
+# if (HashProtection)
     stack->hash = stackHash(stack);
-
+# endif
     ASSERT_OK(stack, &error)
 
     return error;
@@ -210,13 +218,16 @@ size_t stackPop(Stack *stack, Elem_t *value)
     }
 
     *value = stack->data[stack->size--];
-    stack->hash = stackHash(stack);
 
+# if (HashProtection)
+    stack->hash = stackHash(stack);
+# endif
     if (stack->size * 4 <= stack->capacity)
         error = stackResize(stack);
 
+# if (HashProtection)
     stack->hash = stackHash(stack);
-
+# endif
     ASSERT_OK(stack, &error)
 
     return error;
@@ -241,14 +252,17 @@ size_t stackDtor(Stack *stack)
 
     stack->alive = false;
 
+# if (CanaryProtection)
     stack->info.canary_start = CANARY_POISONED;
     stack->info.canary_end = CANARY_POISONED;
 
     stack->canary_start = CANARY_POISONED;
     stack->canary_end = CANARY_POISONED;
+#endif
 
+# if (HashProtection)
     stack->hash = (size_t) POISON_INT_VALUE;
-
+# endif
     return error;
 }
 
@@ -266,6 +280,7 @@ void stackDump(Stack *stack, StackInfo *info)
            stack->info.initFunction,
            stack->info.initFile,
            stack->info.initLine);
+# if (HashProtection)
     printf("{\n"
            "    Size = %zu \n"
            "    Capacity = %zu \n"
@@ -277,6 +292,16 @@ void stackDump(Stack *stack, StackInfo *info)
            stackHash(stack),
            stack->hash,
            stack->data);
+#else
+    printf("{\n"
+           "    Size = %zu \n"
+           "    Capacity = %zu \n"
+           "    Data [%p] \n",
+           stack->size,
+           stack->capacity,
+           stack->data);
+#endif
+
     if (stack->data == POISON_PTR or stack->data == nullptr)
     {
         printf("    Pointer poisoned.\n}\n");
@@ -306,7 +331,10 @@ size_t stackResizeMemory(Stack *stack, size_t newStackCapacity)
 
     stack->data = newData;
     stack->capacity = newStackCapacity;
+
+# if (HashProtection)
     stack->hash = stackHash(stack);
+# endif
 
     ASSERT_OK(stack, &error)
     return error;
@@ -347,6 +375,7 @@ size_t stackResize(Stack *stack)
     return error;
 }
 
+# if (HashProtection)
 size_t hashData(void *data, size_t size)
 {
     assert(data != nullptr);
@@ -354,7 +383,7 @@ size_t hashData(void *data, size_t size)
     size_t hash = 5381;
     for (int i = 0; i < size; i++)
     {
-        hash = 33 * hash + ((char *)data)[i];
+        hash = 33 * hash + ((char *) data)[i];
     }
     return hash;
 }
@@ -369,4 +398,5 @@ size_t stackHash(Stack *stack)
     stack->hash = old_hash;
     return hash;
 }
+# endif
 
