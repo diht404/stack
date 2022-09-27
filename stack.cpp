@@ -27,7 +27,9 @@ int main()
         Elem_t value = 0;
         error = stackPop(&stack, &value);
     }
+    stackShrinkToFit(&stack);
     stack.size = 69;
+
     error = stackDtor(&stack);
 
     Elem_t value = POISON_INT_VALUE;

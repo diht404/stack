@@ -252,6 +252,18 @@ size_t stackPop(Stack *stack, Elem_t *value)
     return error;
 }
 
+size_t stackShrinkToFit(Stack *stack)
+{
+    assert(stack != nullptr);
+
+    size_t error = NO_ERRORS;
+    error = stackResizeMemory(stack, stack->size);
+    if (error)
+        return error;
+    ASSERT_OK(stack, &error);
+    return error;
+}
+
 size_t stackDtor(Stack *stack)
 {
     assert(stack != nullptr);
@@ -438,7 +450,7 @@ size_t hashData(void *data, size_t size)
     assert(data != nullptr);
 
     size_t hash = 5381;
-    for (int i = 0; i < size; i++)
+    for (size_t i = 0; i < size; i++)
     {
         hash = 33 * hash + ((char *) data)[i];
     }

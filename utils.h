@@ -195,6 +195,14 @@ size_t stackPop(Stack *stack, Elem_t *value);
 size_t stackDtor(Stack *stack);
 
 /**
+ * @brief shrink stack to size
+ *
+ * @param stack stack to shrink
+ * @return error code
+ */
+size_t stackShrinkToFit(Stack *stack);
+
+/**
  * @brief generates dump of stack
  *
  * @param stack stack for dumping
@@ -221,7 +229,20 @@ size_t stackResizeMemory(Stack *stack, size_t newStackCapacity);
 size_t stackResize(Stack *stack);
 
 # if (HashProtection)
+/**
+ * @brief hashes data
+ *
+ * @param data data to hash
+ * @param size size of data
+ * @return hash of data
+ */
 size_t hashData(void *data, size_t size);
 
+/**
+ * @brief hashes stack
+ *
+ * @param stack stack to hash
+ * @return hash of stack
+ */
 size_t stackHash(Stack *stack);
 # endif
