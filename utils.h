@@ -239,4 +239,10 @@ void stackDump(Stack *stack,
     }                                                           \
 }
 
+/**
+ * @brief logs error to file
+ *
+ * @param fp - file to write logs
+ * @param error error code to process
+ */
 void processError(FILE *fp, size_t error);
