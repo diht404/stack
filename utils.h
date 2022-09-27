@@ -107,9 +107,9 @@ size_t stackCtor__(Stack *stack, size_t numOfElements, FILE *logFile);
  * @param stack stack for constructing
  * @param numOfElements number of elements in stack
  * @param error error code
+ * @param logFile file for logs
  * @return void
  */
-
 #define stackCtor(stack, numOfElements, error, logFile)         \
 {                                                               \
     (stack)->info = {__LINE__, __FILE__, __PRETTY_FUNCTION__};  \
