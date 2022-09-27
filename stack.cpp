@@ -23,9 +23,7 @@ int main()
     Elem_t value = POISON_INT_VALUE;
     error = stackPop(&stack, &value);
 
-
     error = stackPush(&stack, 69);
-
 
     return 0;
 }

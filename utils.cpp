@@ -148,10 +148,26 @@ size_t __stackCtor(Stack *stack, size_t numOfElements)
 
     size_t error = NO_ERRORS;
 
+    size_t dataSize = (numOfElements) * sizeof(Elem_t);
+#if (CanaryProtection)
+    char *canary_data_canary = (char *) calloc(
+        dataSize + 2 * sizeof(Canary), 1);
+    stack->data = (Elem_t *) (canary_data_canary + sizeof(Canary));
+
+    if (canary_data_canary == nullptr)
+        return CANT_ALLOCATE_MEMORY_FOR_STACK;
+
+    *(Canary *) canary_data_canary = CANARY_START;
+
+    *(Canary *) (canary_data_canary + sizeof(Canary) + dataSize) =
+        CANARY_END;
+#else
     stack->data =
         (Elem_t *) calloc(numOfElements + 1, sizeof(stack->data[0]));
     if (stack->data == nullptr)
         return CANT_ALLOCATE_MEMORY_FOR_STACK;
+#endif
+
     stack->size = 0;
     stack->capacity = numOfElements;
 
@@ -243,9 +259,11 @@ size_t stackDtor(Stack *stack)
 
     if (error)
         return error;
-
+# if (CanaryProtection)
+    free(stack->data - sizeof(Canary));
+# else
     free(stack->data);
-
+# endif
     stack->data = (Elem_t *) POISON_PTR;
     stack->size = (size_t) POISON_INT_VALUE;
     stack->capacity = (size_t) POISON_INT_VALUE;
@@ -321,15 +339,35 @@ void stackDump(Stack *stack, StackInfo *info)
 size_t stackResizeMemory(Stack *stack, size_t newStackCapacity)
 {
     size_t error = 0;
+    size_t dataSize =
+        sizeof(Elem_t) * stack->capacity + 2 * sizeof(Canary);
+    size_t newSize =
+        sizeof(Elem_t) * newStackCapacity + 2 * sizeof(Canary);
+
+#if (CanaryProtection)
+    char *newData =
+        (char *) recalloc((Canary *) stack->data - 1,
+                          dataSize,
+                          newSize,
+                          &error);
+# else
     Elem_t *newData =
         (Elem_t *) recalloc(stack->data,
-                            sizeof(newData[0]) * stack->capacity,
-                            sizeof(newData[0]) * newStackCapacity,
-                            &error);
+                          dataSize,
+                          newSize,
+                          &error);
+# endif
     if (newData == nullptr)
         return CANT_ALLOCATE_MEMORY_FOR_STACK;
+# if (CanaryProtection)
+    stack->data = (Elem_t *) (newData + sizeof(Canary));
+    *(Canary *) newData = CANARY_START;
 
-    stack->data = newData;
+    *(Canary *) (newData + sizeof(Canary) + dataSize) =
+        CANARY_END;
+# else
+    stack->data = (Elem_t *) newData;
+# endif
     stack->capacity = newStackCapacity;
 
 # if (HashProtection)
