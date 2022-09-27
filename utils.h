@@ -1,3 +1,4 @@
+#include <cstdint>
 #include "stdio.h"
 #include "stdlib.h"
 #include "assert.h"
@@ -5,25 +6,34 @@
 #include "math.h"
 
 typedef double Elem_t;
+typedef uint64_t Canary;
 const Elem_t POISON_VALUE = NAN;
 const int POISON_INT_VALUE = -7;
 const Elem_t *const POISON_PTR = &POISON_VALUE;
 const char *const POISON_STRING = "1000-7";
+const uint64_t CANARY_START = 0x8BADF00D;
+const uint64_t CANARY_END = 0xBAADF00D;
+const uint64_t CANARY_POISONED = 0xDEADBEEF;
 
 struct StackInfo
 {
+    Canary canary_start = CANARY_START;
     int initLine = POISON_INT_VALUE;
     const char *initFile = POISON_STRING;
     const char *initFunction = POISON_STRING;
+    Canary canary_end = CANARY_END;
 };
 
 struct Stack
 {
+    Canary canary_start = CANARY_START;
     Elem_t *data = (Elem_t *) POISON_PTR;
     size_t size = (size_t) POISON_INT_VALUE;
     size_t capacity = (size_t) POISON_INT_VALUE;
     StackInfo info = {};
+    bool alive = false;
     size_t hash = 0;
+    Canary canary_end = CANARY_END;
 };
 
 enum Errors
@@ -37,6 +47,9 @@ enum Errors
     POISONED_SIZE_ERR = 1 << 5,
     POISONED_CAPACITY_ERR = 1 << 6,
     INCORRECT_HASH = 1 << 7,
+    NOT_ALIVE = 1 << 8,
+    START_STRUCT_CANARY_DEAD = 1 << 9,
+    START_STRUCT_CANARY_POISONED = 1 << 10,
 };
 
 void processError(size_t error);
@@ -96,9 +109,10 @@ size_t __stackCtor(Stack *stack, size_t numOfElements);
  */
 #define ASSERT_OK(stack, error)                                 \
 {                                                               \
-    StackInfo info = {__LINE__, __FILE__, __PRETTY_FUNCTION__}; \
+    StackInfo info = {0x8BADF00D,                               \
+    __LINE__, __FILE__, __PRETTY_FUNCTION__, 0xBAADF00D};       \
     *(error) = stackVerifier((stack));                          \
-    if (*(error))                                                 \
+    if (*(error))                                               \
     {                                                           \
         stackDump((stack), &(info));                            \
     }                                                           \

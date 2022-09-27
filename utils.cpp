@@ -89,6 +89,52 @@ size_t stackVerifier(Stack *stack)
     {
         error |= INCORRECT_HASH;
     }
+
+    if (!stack->alive)
+    {
+        error |= NOT_ALIVE;
+    }
+
+    if (stack->canary_start != CANARY_START)
+    {
+        if (stack->canary_start == CANARY_POISONED)
+        {
+            error |= START_STRUCT_CANARY_POISONED;
+        }
+        else
+            error |= START_STRUCT_CANARY_DEAD;
+    }
+
+    if (stack->canary_end != CANARY_END)
+    {
+        if (stack->canary_end == CANARY_POISONED)
+        {
+            error |= START_STRUCT_CANARY_POISONED;
+        }
+        else
+            error |= START_STRUCT_CANARY_DEAD;
+    }
+
+    if (stack->info.canary_start != CANARY_START)
+    {
+        if (stack->info.canary_start == CANARY_POISONED)
+        {
+            error |= START_STRUCT_CANARY_POISONED;
+        }
+        else
+            error |= START_STRUCT_CANARY_DEAD;
+    }
+
+    if (stack->info.canary_end != CANARY_END)
+    {
+        if (stack->info.canary_end == CANARY_POISONED)
+        {
+            error |= START_STRUCT_CANARY_POISONED;
+        }
+        else
+            error |= START_STRUCT_CANARY_DEAD;
+    }
+
     return error;
 }
 
@@ -108,6 +154,14 @@ size_t __stackCtor(Stack *stack, size_t numOfElements)
     {
         stack->data[i] = POISON_VALUE;
     }
+    stack->alive = true;
+
+    stack->info.canary_start = CANARY_START;
+    stack->info.canary_end = CANARY_END;
+
+    stack->canary_start = CANARY_START;
+    stack->canary_end = CANARY_END;
+
     stack->hash = stackHash(stack);
 
     ASSERT_OK(stack, &error)
@@ -160,11 +214,6 @@ size_t stackPop(Stack *stack, Elem_t *value)
 
     if (stack->size * 4 <= stack->capacity)
         error = stackResize(stack);
-//    if (stack->hash != stackHash(stack))
-//    {
-//        printf("HASH: %zu\n", stack->hash);
-//        printf("Correct HASH: %zu\n", stackHash(stack));
-//    }
 
     stack->hash = stackHash(stack);
 
@@ -189,6 +238,15 @@ size_t stackDtor(Stack *stack)
     stack->data = (Elem_t *) POISON_PTR;
     stack->size = (size_t) POISON_INT_VALUE;
     stack->capacity = (size_t) POISON_INT_VALUE;
+
+    stack->alive = false;
+
+    stack->info.canary_start = CANARY_POISONED;
+    stack->info.canary_end = CANARY_POISONED;
+
+    stack->canary_start = CANARY_POISONED;
+    stack->canary_end = CANARY_POISONED;
+
     stack->hash = (size_t) POISON_INT_VALUE;
 
     return error;
