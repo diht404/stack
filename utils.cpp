@@ -120,7 +120,7 @@ size_t stackPop(Stack *stack, Elem_t *value)
         return STACK_IS_EMPTY;
     }
 
-    *value = stack->data[stack->size--];
+    *value = stack->data[stack->size];
 
 #if (HashProtection)
     stack->hash = stackHash(stack);
@@ -155,7 +155,7 @@ size_t stackResizeMemory(Stack *stack, size_t newStackCapacity)
     size_t dataSize =
         sizeof(Elem_t) * stack->capacity + 2 * sizeof(Canary);
     size_t newCapacity =
-        sizeof(Elem_t) * newStackCapacity;
+        sizeof(Elem_t) * (newStackCapacity - 7);
 
 #if (CanaryProtection)
     char *newData =
