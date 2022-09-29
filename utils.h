@@ -6,14 +6,6 @@
 #include "math.h"
 #include <cstdarg>
 
-#ifndef CanaryProtection
-#define CanaryProtection 0
-#endif
-
-#ifndef HashProtection
-#define HashProtection 0
-#endif
-
 typedef double Elem_t;
 typedef uint64_t Canary;
 const Elem_t POISON_VALUE = NAN;
@@ -49,6 +41,7 @@ struct Stack
     FILE *logFile = (FILE *) POISON_PTR;
     bool alive = false;
 #if (HashProtection)
+    size_t dataHash = 0;
     size_t hash = 0;
 #endif
 #if (CanaryProtection)
@@ -76,6 +69,7 @@ enum Errors
     STACK_START_DATA_CANARY_POISONED = 1 << 14,
     STACK_END_DATA_CANARY_DEAD = 1 << 15,
     STACK_END_DATA_CANARY_POISONED = 1 << 16,
+    STACK_DATA_INCORRECT_HASH = 1 << 17,
 };
 
 /**
@@ -111,10 +105,10 @@ size_t stackCtor__(Stack *stack, size_t numOfElements, FILE *logFile);
  * @param logFile file for logs
  * @return void
  */
-#define stackCtor(stack, numOfElements, error, logFile)         \
-{                                                               \
-    (stack)->info = {__LINE__, __FILE__, __PRETTY_FUNCTION__};  \
-    *(error) = stackCtor__((stack), (numOfElements), (logFile));\
+#define stackCtor(stack, numOfElements, error, logFile)                \
+{                                                                      \
+    (stack)->info = {__LINE__, __FILE__, __PRETTY_FUNCTION__, #stack}; \
+    *(error) = stackCtor__((stack), (numOfElements), (logFile));       \
 }
 
 /**
@@ -169,6 +163,14 @@ size_t stackResize(Stack *stack);
  * @return hash of data
  */
 size_t hashData(void *data, size_t size);
+
+/**
+ * @brief hashes stack data
+ *
+ * @param stack stack to hash its data
+ * @return hash of stack data
+ */
+size_t stackHashBuffer(Stack *stack);
 
 /**
  * @brief hashes stack
@@ -230,14 +232,14 @@ void stackDump(Stack *stack,
  * @param stack stack for checking
  * @return void
  */
-#define ASSERT_OK(stack, error)                                         \
-{                                                                       \
-    StackInfo info = {__LINE__, __FILE__, __PRETTY_FUNCTION__, #stack}; \
-    *(error) = stackVerifier((stack));                                  \
-    if (*(error))                                                       \
-    {                                                                   \
-        stackDump((stack), &(info), *(error), printElem_t);             \
-    }                                                                   \
+#define ASSERT_OK(stack, error)                                        \
+{                                                                      \
+    StackInfo info = {__LINE__, __FILE__, __PRETTY_FUNCTION__, #stack};\
+    *(error) = stackVerifier((stack));                                 \
+    if (*(error))                                                      \
+    {                                                                  \
+        stackDump((stack), &(info), *(error), printElem_t);            \
+    }                                                                  \
 }
 
 /**

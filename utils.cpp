@@ -71,6 +71,7 @@ size_t stackCtor__(Stack *stack, size_t numOfElements, FILE *logFile)
 # endif
     stack->logFile = logFile;
 # if (HashProtection)
+    stack->dataHash = stackHashBuffer(stack);
     stack->hash = stackHash(stack);
 #endif
 
@@ -97,6 +98,7 @@ size_t stackPush(Stack *stack, Elem_t value)
 
     stack->data[stack->size++] = value;
 #if (HashProtection)
+    stack->dataHash = stackHashBuffer(stack);
     stack->hash = stackHash(stack);
 #endif
     ASSERT_OK(stack, &error)
@@ -123,12 +125,14 @@ size_t stackPop(Stack *stack, Elem_t *value)
     *value = stack->data[stack->size--];
 
 #if (HashProtection)
+    stack->dataHash = stackHashBuffer(stack);
     stack->hash = stackHash(stack);
 #endif
     if (stack->size * 4 <= stack->capacity)
         error = stackResize(stack);
 
 #if (HashProtection)
+        stack->dataHash = stackHashBuffer(stack);
         stack->hash = stackHash(stack);
 #endif
     ASSERT_OK(stack, &error)
@@ -186,6 +190,7 @@ size_t stackResizeMemory(Stack *stack, size_t newStackCapacity)
     stack->capacity = newStackCapacity;
 
 #if (HashProtection)
+    stack->dataHash = stackHashBuffer(stack);
     stack->hash = stackHash(stack);
 #endif
 
@@ -241,6 +246,11 @@ size_t hashData(void *data, size_t size)
     return hash;
 }
 
+size_t stackHashBuffer(Stack *stack)
+{
+    return hashData((char *)stack->data, stack->capacity * sizeof(Elem_t));
+}
+
 size_t stackHash(Stack *stack)
 {
     assert(stack != nullptr);
@@ -281,6 +291,7 @@ size_t stackDtor(Stack *stack)
 
 # if (HashProtection)
     stack->hash = (size_t) POISON_INT_VALUE;
+    stack->dataHash = (size_t) POISON_INT_VALUE;
 # endif
     return error;
 }
@@ -311,6 +322,11 @@ size_t stackVerifier(Stack *stack)
     }
 
 # if (HashProtection)
+    if (stack->dataHash != stackHashBuffer(stack))
+    {
+        error |= STACK_DATA_INCORRECT_HASH;
+    }
+
     if (stack->hash != stackHash(stack))
     {
         error |= STACK_INCORRECT_HASH;
@@ -423,13 +439,17 @@ void stackDump(Stack *stack,
     logStack(fp, "{\n"
                  "    Size = %zu \n"
                  "    Capacity = %zu \n"
-                 "    Hash = %zu \n"
-                 "    Correct Hash = %zu \n"
+                 "    Stack hash = %zu \n"
+                 "    Correct stack hash = %zu \n"
+                 "    Stack data hash = %zu \n"
+                 "    Correct stack data ash = %zu \n"
                  "    Data [%p] \n",
              stack->size,
              stack->capacity,
              stackHash(stack),
              stack->hash,
+             stackHashBuffer(stack),
+             stack->dataHash,
              stack->data);
 #else
     logStack(fp, "{\n"
@@ -495,7 +515,7 @@ void processError(FILE *fp, size_t error)
 
     if (error & STACK_INCORRECT_HASH)
         logStack(fp,
-                 "Incorrect hash.\n");
+                 "Incorrect hash of stack.\n");
 
     if (error & STACK_NOT_ALIVE)
         logStack(fp,
@@ -515,7 +535,6 @@ void processError(FILE *fp, size_t error)
         logStack(fp,
                  "End canary in struct was poisoned.\n");
 
-
     if (error & STACK_START_DATA_CANARY_DEAD)
         logStack(fp,
                  "Start canary in data was destroyed.\n");
@@ -529,4 +548,8 @@ void processError(FILE *fp, size_t error)
     if (error & STACK_END_DATA_CANARY_POISONED)
         logStack(fp,
                  "End canary in data was poisoned.\n");
+
+    if (error & STACK_DATA_INCORRECT_HASH)
+        logStack(fp,
+                 "Incorrect hash of stack data.\n");
 }
