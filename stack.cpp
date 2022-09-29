@@ -24,6 +24,7 @@ int main()
     {
         error = stackPush(&stack, i);
     }
+    stack.hash = 69;
     for (int i = 0; i < 1000; i++)
     {
         Elem_t value = 0;

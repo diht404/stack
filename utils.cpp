@@ -120,7 +120,7 @@ size_t stackPop(Stack *stack, Elem_t *value)
         return STACK_IS_EMPTY;
     }
 
-    *value = stack->data[stack->size];
+    *value = stack->data[stack->size--];
 
 #if (HashProtection)
     stack->hash = stackHash(stack);
@@ -155,7 +155,7 @@ size_t stackResizeMemory(Stack *stack, size_t newStackCapacity)
     size_t dataSize =
         sizeof(Elem_t) * stack->capacity + 2 * sizeof(Canary);
     size_t newCapacity =
-        sizeof(Elem_t) * (newStackCapacity - 7);
+        sizeof(Elem_t) * (newStackCapacity);
 
 #if (CanaryProtection)
     char *newData =
@@ -400,7 +400,8 @@ void stackDump(Stack *stack,
         fp = stderr;
 
     logStack(fp, "-----START LOGGING STACK-----\n");
-    logStack(fp, "Error in function '%s' at %s (%d)\n",
+    logStack(fp, "Error in stack '%s' in function '%s' at %s (%d)\n",
+             info->name,
              info->initFunction,
              info->initFile,
              info->initLine);
@@ -412,8 +413,9 @@ void stackDump(Stack *stack,
         return;
     }
 
-    logStack(fp, "Stack [%p] was initialized at %s at %s (%d)\n",
+    logStack(fp, "Stack [%p] '%s' was initialized at %s at %s (%d)\n",
              stack,
+             stack->info.name,
              stack->info.initFunction,
              stack->info.initFile,
              stack->info.initLine);

@@ -32,6 +32,7 @@ struct StackInfo
     int initLine = POISON_INT_VALUE;
     const char *initFile = POISON_STRING;
     const char *initFunction = POISON_STRING;
+    const char *name = POISON_STRING;
 };
 
 struct Stack
@@ -229,14 +230,14 @@ void stackDump(Stack *stack,
  * @param stack stack for checking
  * @return void
  */
-#define ASSERT_OK(stack, error)                                 \
-{                                                               \
-    StackInfo info = {__LINE__, __FILE__, __PRETTY_FUNCTION__}; \
-    *(error) = stackVerifier((stack));                          \
-    if (*(error))                                               \
-    {                                                           \
-        stackDump((stack), &(info), *(error), printElem_t);     \
-    }                                                           \
+#define ASSERT_OK(stack, error)                                         \
+{                                                                       \
+    StackInfo info = {__LINE__, __FILE__, __PRETTY_FUNCTION__, #stack}; \
+    *(error) = stackVerifier((stack));                                  \
+    if (*(error))                                                       \
+    {                                                                   \
+        stackDump((stack), &(info), *(error), printElem_t);             \
+    }                                                                   \
 }
 
 /**
