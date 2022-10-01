@@ -1,34 +1,5 @@
 #include "stack.h"
 
-//void *recalloc(void *memory,
-//               size_t currentSize,
-//               size_t newSize,
-//               size_t *error)
-//{
-//    assert(memory != nullptr);
-////    printf("%zu, %zu\n", _msize(memory), currentSize);
-//    if (error != nullptr and *error)
-//        return error;
-//
-//    void *newMemory = realloc(memory, newSize);
-//    if (newMemory == nullptr)
-//    {
-//        if (error != nullptr)
-//            *error = CANT_ALLOCATE_MEMORY;
-//        return memory;
-//    }
-//
-//    if (currentSize < newSize)
-//        memset((char *) newMemory + currentSize,
-//               0,
-//               newSize - currentSize);
-//
-//    if (error != nullptr)
-//        *error = STACK_NO_ERRORS;
-//
-//    return newMemory;
-//}
-
 size_t stackCtor__(Stack *stack, size_t numOfElements, FILE *logFile)
 {
     assert(stack != nullptr);
@@ -36,8 +7,9 @@ size_t stackCtor__(Stack *stack, size_t numOfElements, FILE *logFile)
 
     size_t error = STACK_NO_ERRORS;
 
-#if (CanaryProtection)
     size_t dataSize = numOfElements * sizeof(Elem_t);
+
+#if (CanaryProtection)
     char *canary_data_canary = (char *) calloc(
         dataSize + 2 * sizeof(Canary), sizeof(char));
     stack->data = (Elem_t *)(canary_data_canary + sizeof(Canary));
@@ -47,19 +19,26 @@ size_t stackCtor__(Stack *stack, size_t numOfElements, FILE *logFile)
 
     *(Canary *)canary_data_canary = CANARY_START;
     *(Canary *)(canary_data_canary + sizeof(Canary) + dataSize) = CANARY_END;
+
     stack->canary_start = CANARY_START;
     stack->canary_end = CANARY_END;
-    stackPoisonData(stack, &error);
+
 #else
     stack->data =
-        (Elem_t *) calloc(numOfElements, sizeof(stack->data[0]));
+        (Elem_t *) calloc(dataSize);
     if (stack->data == nullptr)
         return CANT_ALLOCATE_MEMORY_FOR_STACK;
 #endif
+
+#if (PoisonProtection)
+    stackPoisonData(stack, &error);
+#endif
+
     stack->size = 0;
     stack->capacity = numOfElements;
     stack->alive = true;
     stack->logFile = logFile;
+
 # if (HashProtection)
     stack->dataHash = stackHashBuffer(stack);
     stack->hash = stackHash(stack);
@@ -108,7 +87,7 @@ size_t stackPop(Stack *stack, Elem_t *value)
 
     if (stack->size == 0)
     {
-        *value = POISON_VALUE;
+        *value = 0;
         return STACK_IS_EMPTY;
     }
 
@@ -143,6 +122,7 @@ size_t stackShrinkToFit(Stack *stack)
     return error;
 }
 
+#if (PoisonProtection)
 void stackPoisonData(Stack *stack, size_t *error)
 {
     for (size_t i = stack->size; i < stack->capacity; i++)
@@ -150,6 +130,7 @@ void stackPoisonData(Stack *stack, size_t *error)
         stack->data[i] = POISON_VALUE;
     }
 }
+#endif
 
 size_t stackResizeMemory(Stack *stack, size_t newStackCapacity)
 {
@@ -277,7 +258,11 @@ size_t stackDtor(Stack *stack)
 # else
     free(stack->data);
 # endif
+
+#if (PoisonProtection)
     stack->data = (Elem_t *) POISON_PTR;
+#endif
+
     stack->size = (size_t) POISON_INT_VALUE;
     stack->capacity = (size_t) POISON_INT_VALUE;
 
@@ -294,12 +279,14 @@ size_t stackDtor(Stack *stack)
 # endif
     return error;
 }
-
+#if (PoisonProtection)
 bool isPoison(Elem_t value)
 {
     return value == POISON_VALUE;//TODO: add for other types
 }
+#endif
 
+#if (PoisonProtection)
 void stackVerifyPoison(Stack *stack, size_t *error)
 {
     assert(stack != nullptr);
@@ -314,6 +301,7 @@ void stackVerifyPoison(Stack *stack, size_t *error)
         }
     }
 }
+#endif
 
 size_t stackVerifier(Stack *stack)
 {
@@ -340,11 +328,12 @@ size_t stackVerifier(Stack *stack)
     {
         error |= STACK_SIZE_MORE_THAN_CAPACITY;
     }
-
+#if (PoisonProtection)
     if (stack->data == POISON_PTR or stack->data == nullptr)
     {
         error |= STACK_POISON_PTR_ERR;
     }
+#endif
 
 #if (PoisonProtection)
     stackVerifyPoison(stack, &error);
@@ -489,27 +478,38 @@ void stackDump(Stack *stack,
              stack->capacity,
              stack->data);
 #endif
+
+#if (PoisonProtection)
     if (stack->data == POISON_PTR or stack->data == nullptr)
     {
         logStack(fp, "    Pointer poisoned.\n}\n");
         return;
     }
+#endif
     for (size_t i = 0; i < stack->size; i++)
     {
 
         logStack(fp, "    * [%zu] = ", i);
         print(stack->data[i], fp);
+#if (PoisonProtection)
         logStack(fp,
                  " %s\n",
                  isPoison(stack->data[i]) ? "(Poisoned)" : "");
+#else
+        logStack(fp, "\n");
+#endif
     }
     for (size_t i = stack->size; i < stack->capacity; i++)
     {
         logStack(fp, "      [%zu] = ", i);
         print(stack->data[i], fp);
+#if (PoisonProtection)
         logStack(fp,
                  " %s\n",
                  isPoison(stack->data[i]) ? "(Poisoned)" : "");
+#else
+        logStack(fp, "\n");
+#endif
     }
     logStack(fp, "}\n");
 #if (CanaryProtection)

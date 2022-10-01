@@ -11,9 +11,9 @@ typedef int Elem_t;
 typedef uint64_t Canary;
 #if (PoisonProtection)
 const Elem_t POISON_VALUE = INT_MAX;
+const Elem_t *const POISON_PTR = &POISON_VALUE;
 #endif
 const int POISON_INT_VALUE = -7;
-const Elem_t *const POISON_PTR = &POISON_VALUE;
 const char *const POISON_STRING = "1000-7";
 
 #if (CanaryProtection)
@@ -35,13 +35,17 @@ struct Stack
 #if (CanaryProtection)
     Canary canary_start = CANARY_START;
 #endif
+#if (PoisonProtection)
     Elem_t *data = (Elem_t *) POISON_PTR;
-
+    FILE *logFile = nullptr;
+#else
+    Elem_t *data = nullptr;
+    FILE *logFile = nullptr;
+#endif
     size_t capacity = (size_t) 0;
     size_t size = (size_t) 0;
 
     StackInfo info = {};
-    FILE *logFile = (FILE *) POISON_PTR;
     bool alive = false;
 #if (HashProtection)
     size_t dataHash = 0;
@@ -76,20 +80,6 @@ enum Errors
     STACK_POISONED_DATA                = 1 << 18,
     STACK_NULLPTR                      = 1 << 19,
 };
-
-/**
- * @brief Recalloc implementation
- *
- * @param memory memory to resize
- * @param currentSize current size of memory
- * @param newSize required size of memory
- * @param error error code
- * @return pointer to new memory if success, nullptr if can't allocate memory
- */
-void *recalloc(void *memory,
-               size_t currentSize,
-               size_t newSize,
-               size_t *error = nullptr);
 
 /**
  * @brief constructor for stack

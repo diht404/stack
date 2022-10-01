@@ -18,4 +18,4 @@ utils.o: stack.cpp
 	$(CC) $(CFLAGS) utils.cpp
 
 clean:
-	rm -rf *.o main.exe debug.exe
+	rm -rf *.o main.exe debug.exe logs.txt
