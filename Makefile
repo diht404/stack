@@ -11,10 +11,10 @@ debug: tests.o utils.o
 tests.o: tests.cpp
 	$(CC) $(CFLAGS) tests.cpp
 
-stack.o: stack.cpp
+stack.o: main.cpp
 	$(CC) $(CFLAGS) stack.cpp
 
-utils.o: utils.cpp
+utils.o: stack.cpp
 	$(CC) $(CFLAGS) utils.cpp
 
 clean:

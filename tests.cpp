@@ -1,6 +1,6 @@
 #define HashProtection 1
 #define CanaryProtection 1
-#include "utils.h"
+#include "stack.h"
 
 FILE *fp = nullptr;
 void closeFile()
