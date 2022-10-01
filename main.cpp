@@ -1,28 +1,29 @@
 #include "stack.h"
+#include "stack_logs.h"
 
-FILE *fp = nullptr;
-void closeFile()
-{
-    if (fp != nullptr)
-        fclose(fp);
-}
+//FILE *fp = nullptr;
+//void closeFile()
+//{
+//    if (fp != nullptr)
+//        fclose(fp);
+//}
 
 int main()
 {
-    atexit(closeFile);
     Stack stack = {};
-    fp = fopen("logs.txt", "w");
+    FILE *fp = openLogs("logs.txt");
     if (fp == nullptr)
         return 1;
+
     size_t error = STACK_NO_ERRORS;
 
     stackCtor(&stack, 0, &error, fp)
 
-    for (int i = 0; i < 16; i++)
+    for (int i = 0; i < 1024; i++)
     {
         error = stackPush(&stack, i);
     }
-    for (int i = 0; i < 16; i++)
+    for (int i = 0; i < 1024; i++)
     {
         Elem_t value = 0;
         error = stackPop(&stack, &value);
@@ -34,5 +35,7 @@ int main()
     error = stackPop(&stack, &value);
 
     error = stackPush(&stack, 666);
+
+    closeLogs(fp);
     return 0;
 }

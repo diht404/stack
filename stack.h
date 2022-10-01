@@ -1,3 +1,6 @@
+#ifndef STACK
+#define STACK
+
 #include <cstdint>
 #include "stdio.h"
 #include "stdlib.h"
@@ -132,7 +135,7 @@ size_t stackPop(Stack *stack, Elem_t *value);
  */
 size_t stackShrinkToFit(Stack *stack);
 
-void stackPoisonData(Stack *stack, size_t *error);
+void stackPoisonData(Stack *stack);
 
 /**
  * @brief resizes stack to certain len
@@ -186,73 +189,4 @@ size_t stackHash(Stack *stack);
  */
 size_t stackDtor(Stack *stack);
 
-bool isPoison(Elem_t value);
-
-void stackVerifyPoison(Stack *stack, size_t *error);
-
-/**
- * @brief Checks if stack is correct
- *
- * @param stack stack for checking
- * @return error code
- */
-size_t stackVerifier(Stack *stack);
-
-/**
- *
- * @param fp file for logs
- * @param formatString formatting string to log
- * @param ... argument of formattim string
- */
-void logStack(FILE *fp, const char *formatString, ...);
-
-/**
- * @brief print Elem_t as double
- *
- * @param value Elem_t to print
- * @param fp file to write
- * @return void
- */
-void printElem_t(Elem_t value, FILE *fp);
-
-void printData(Elem_t *data,
-               FILE *fp,
-               size_t size,
-               bool alive,
-               void (*print)(Elem_t, FILE *) = printElem_t);
-
-/**
- * @brief generates dump of stack
- *
- * @param stack stack for dumping
- * @param info struct with info about stack
- * @return void
- */
-void stackDump(Stack *stack,
-               StackInfo *info,
-               size_t error,
-               void (*print)(Elem_t, FILE *) = printElem_t);
-
-/**
- * @brief macro for checking if stack is correct
- *
- * @param stack stack for checking
- * @return void
- */
-#define ASSERT_OK(stack, error)                                        \
-{                                                                      \
-    StackInfo info = {__LINE__, __FILE__, __PRETTY_FUNCTION__, #stack};\
-    *(error) = stackVerifier((stack));                                 \
-    if (*(error))                                                      \
-    {                                                                  \
-        stackDump((stack), &(info), *(error), printElem_t);            \
-    }                                                                  \
-}
-
-/**
- * @brief logs error to file
- *
- * @param fp - file to write logs
- * @param error error code to process
- */
-void processError(FILE *fp, size_t error);
+#endif

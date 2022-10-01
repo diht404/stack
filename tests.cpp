@@ -1,5 +1,4 @@
-#define HashProtection 1
-#define CanaryProtection 1
+#include "config.h"
 #include "stack.h"
 
 FILE *fp = nullptr;
@@ -101,8 +100,8 @@ bool test_4()
         Elem_t value = 0;
         error = stackPop(&stack, &value);
     }
-    stack.size = -69;
-    stack.capacity = -69;
+    stack.size = 0;
+    stack.capacity = 0;
     error = stackDtor(&stack);
     return true;
 }
