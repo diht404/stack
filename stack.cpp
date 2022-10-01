@@ -114,11 +114,21 @@ size_t stackShrinkToFit(Stack *stack)
     assert(stack != nullptr);
 
     size_t error = STACK_NO_ERRORS;
+    if (stack->size == 0)
+    {
+#if (CanaryProtection)
+        free((char *)stack->data - sizeof(Canary));
+#else
+        free(stack->data);
+#endif
+        stack->data = nullptr;
+        ASSERT_OK(stack, &error)
+        return error;
+    }
     error = stackResizeMemory(stack, stack->size);
     if (error)
         return error;
 
-    ASSERT_OK(stack, &error)
     return error;
 }
 

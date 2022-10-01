@@ -21,11 +21,11 @@ int main()
         error = stackPop(&stack, &value);
     }
     stackShrinkToFit(&stack);
-//    error = stackDtor(&stack);
-//
-//    Elem_t value = POISON_INT_VALUE;
-//    error = stackPop(&stack, &value);
-//
-//    error = stackPush(&stack, 666);
+    error = stackDtor(&stack);
+
+    Elem_t value = POISON_INT_VALUE;
+    error = stackPop(&stack, &value);
+
+    error = stackPush(&stack, 666);
     return 0;
 }
