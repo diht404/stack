@@ -1,33 +1,33 @@
 #include "utils.h"
 
-void *recalloc(void *memory,
-               size_t currentSize,
-               size_t newSize,
-               size_t *error)
-{
-    assert(memory != nullptr);
-
-    if (error != nullptr and *error)
-        return error;
-
-    void *newMemory = realloc(memory, newSize);
-    if (newMemory == nullptr)
-    {
-        if (error != nullptr)
-            *error = CANT_ALLOCATE_MEMORY;
-        return memory;
-    }
-
-    if (currentSize < newSize)
-        memset((char *) newMemory + currentSize,
-               0,
-               newSize - currentSize);
-
-    if (error != nullptr)
-        *error = STACK_NO_ERRORS;
-
-    return newMemory;
-}
+//void *recalloc(void *memory,
+//               size_t currentSize,
+//               size_t newSize,
+//               size_t *error)
+//{
+//    assert(memory != nullptr);
+////    printf("%zu, %zu\n", _msize(memory), currentSize);
+//    if (error != nullptr and *error)
+//        return error;
+//
+//    void *newMemory = realloc(memory, newSize);
+//    if (newMemory == nullptr)
+//    {
+//        if (error != nullptr)
+//            *error = CANT_ALLOCATE_MEMORY;
+//        return memory;
+//    }
+//
+//    if (currentSize < newSize)
+//        memset((char *) newMemory + currentSize,
+//               0,
+//               newSize - currentSize);
+//
+//    if (error != nullptr)
+//        *error = STACK_NO_ERRORS;
+//
+//    return newMemory;
+//}
 
 size_t stackCtor__(Stack *stack, size_t numOfElements, FILE *logFile)
 {
@@ -37,38 +37,32 @@ size_t stackCtor__(Stack *stack, size_t numOfElements, FILE *logFile)
     size_t error = STACK_NO_ERRORS;
 
 #if (CanaryProtection)
-    size_t dataSize = (numOfElements) * sizeof(Elem_t);
+    size_t dataSize = numOfElements * sizeof(Elem_t);
     char *canary_data_canary = (char *) calloc(
-        dataSize + 2 * sizeof(Canary), 1);
-    stack->data = (Elem_t *) (canary_data_canary + sizeof(Canary));
+        dataSize + 2 * sizeof(Canary), sizeof(char));
+    stack->data = (Elem_t *)(canary_data_canary + sizeof(Canary));
 
     if (canary_data_canary == nullptr)
         return CANT_ALLOCATE_MEMORY_FOR_STACK;
 
-    *(Canary *) canary_data_canary = CANARY_START;
-
-    *(Canary *) (canary_data_canary + sizeof(Canary) + dataSize) =
-        CANARY_END;
+    Canary *canary_start = (Canary *)canary_data_canary;
+    *canary_start = CANARY_START;
+    Canary *canary_end = (Canary *)(canary_data_canary + sizeof(Canary) + dataSize);
+    *canary_end = CANARY_END;
+    stack->canary_start = CANARY_START;
+    stack->canary_end = CANARY_END;
+//    printf("CTOR START: %p VALUE: %zu\n", canary_start, *canary_start);
+//    printf("CTOR END: %p VALUE: %zu\n\n", canary_end, *canary_end);
+    stackPoisonData(stack, &error);
 #else
     stack->data =
-        (Elem_t *) calloc(numOfElements + 1, sizeof(stack->data[0]));
+        (Elem_t *) calloc(numOfElements, sizeof(stack->data[0]));
     if (stack->data == nullptr)
         return CANT_ALLOCATE_MEMORY_FOR_STACK;
 #endif
-
     stack->size = 0;
     stack->capacity = numOfElements;
-
-    for (size_t i = 0; i < stack->capacity; i++)
-    {
-        stack->data[i] = POISON_VALUE;
-    }
     stack->alive = true;
-
-# if (CanaryProtection)
-    stack->canary_start = CANARY_START;
-    stack->canary_end = CANARY_END;
-# endif
     stack->logFile = logFile;
 # if (HashProtection)
     stack->dataHash = stackHashBuffer(stack);
@@ -132,8 +126,8 @@ size_t stackPop(Stack *stack, Elem_t *value)
         error = stackResize(stack);
 
 #if (HashProtection)
-        stack->dataHash = stackHashBuffer(stack);
-        stack->hash = stackHash(stack);
+    stack->dataHash = stackHashBuffer(stack);
+    stack->hash = stackHash(stack);
 #endif
     ASSERT_OK(stack, &error)
 
@@ -153,39 +147,51 @@ size_t stackShrinkToFit(Stack *stack)
     return error;
 }
 
+void stackPoisonData(Stack *stack, size_t *error)
+{
+    for (size_t i = stack->size; i < stack->capacity; i++)
+    {
+        stack->data[i] = POISON_VALUE;
+    }
+}
+
 size_t stackResizeMemory(Stack *stack, size_t newStackCapacity)
 {
     size_t error = 0;
-    size_t dataSize =
-        sizeof(Elem_t) * stack->capacity + 2 * sizeof(Canary);
     size_t newCapacity =
-        sizeof(Elem_t) * (newStackCapacity);
+        sizeof(Elem_t) * newStackCapacity;
 
 #if (CanaryProtection)
     char *newData =
-        (char *) recalloc((char *) stack->data - sizeof(Canary),
-                          dataSize,
-                          newCapacity + 2 * sizeof(Canary),
-                          &error);
+        (char *) realloc((char *) stack->data - sizeof(Canary),
+                         newCapacity + 2 * sizeof(Canary));
 #else
     Elem_t *newData =
-        (Elem_t *) recalloc(stack->data,
-                            dataSize,
-                            newCapacity,
-                            &error);
+        (Elem_t *) realloc(stack->data, newCapacity);
 #endif
 
     if (newData == nullptr)
         return CANT_ALLOCATE_MEMORY_FOR_STACK;
-#if (CanaryProtection)
-    stack->data = (Elem_t *) (newData + sizeof(Canary));
-    *(Canary *) newData = CANARY_START;
 
-    *(Canary *) (newData + sizeof(Canary) + newCapacity) =
-        CANARY_END;
+#if (CanaryProtection)
+    stack->data = (Elem_t *)(newData+sizeof(Canary));
+
+    Canary *canary_start = (Canary *) newData;
+    *canary_start = CANARY_START;
+
+    Canary *canary_end = (Canary *)(stack->data + newStackCapacity);
+    *canary_end = CANARY_END;
+
+//    printf("RESIZE START: %p VALUE: %zu\n", canary_start, *canary_start);
+//    printf("RESIZE END: %p VALUE: %zu\n", canary_end, *canary_end);
+
 #else
     stack->data = (Elem_t *) newData;
-# endif
+#endif
+
+#if (PoisonProtection)
+    stackPoisonData(stack, &error);
+#endif
 
     stack->capacity = newStackCapacity;
 
@@ -214,7 +220,7 @@ size_t stackResize(Stack *stack)
         error = stackResizeMemory(stack, 1);
         return error;
     }
-    if (stack->size == stack->capacity)
+    if (stack->size >= stack->capacity)
     {
         size_t newStackCapacity = stack->capacity * 2;
         error = stackResizeMemory(stack, newStackCapacity);
@@ -248,7 +254,8 @@ size_t hashData(void *data, size_t size)
 
 size_t stackHashBuffer(Stack *stack)
 {
-    return hashData((char *)stack->data, stack->capacity * sizeof(Elem_t));
+    return hashData((char *) stack->data,
+                    stack->capacity * sizeof(Elem_t));
 }
 
 size_t stackHash(Stack *stack)
@@ -296,9 +303,30 @@ size_t stackDtor(Stack *stack)
     return error;
 }
 
-size_t stackVerifier(Stack *stack)
+bool isPoison(Elem_t value)
+{
+    return value == POISON_VALUE;//TODO: add for other types
+}
+
+void stackVerifyPoison(Stack *stack, size_t *error)
 {
     assert(stack != nullptr);
+    assert(error != nullptr);
+
+    for (size_t i = 0; i < stack->size; i++)
+    {
+        if (isPoison(stack->data[i]))
+        {
+            *error |= STACK_POISONED_DATA;
+            break;
+        }
+    }
+}
+
+size_t stackVerifier(Stack *stack)
+{
+    if (stack == nullptr)
+        return STACK_NULLPTR;
 
     size_t error = STACK_NO_ERRORS;
     if (stack->size == (size_t) POISON_INT_VALUE)
@@ -321,6 +349,9 @@ size_t stackVerifier(Stack *stack)
         error |= STACK_POISON_PTR_ERR;
     }
 
+#if (PoisonProtection)
+    stackVerifyPoison(stack, &error);
+#endif
 # if (HashProtection)
     if (stack->dataHash != stackHashBuffer(stack))
     {
@@ -359,7 +390,8 @@ size_t stackVerifier(Stack *stack)
             error |= STACK_END_STRUCT_CANARY_DEAD;
     }
 
-    Canary *canary_start = (Canary *)((char *)stack->data - sizeof(canary_start[0]));
+    Canary *canary_start =
+        (Canary *) ((char *) stack->data - sizeof(Canary));
     if (*canary_start != CANARY_START)
     {
         if (*canary_start == CANARY_POISONED)
@@ -370,7 +402,9 @@ size_t stackVerifier(Stack *stack)
             error |= STACK_START_DATA_CANARY_DEAD;
     }
 
-    Canary *canary_end = (Canary *)((stack->data + stack->capacity));
+    Canary *canary_end = (Canary *) ((char *) stack->data
+        + sizeof(Elem_t) * stack->capacity);
+
     if (*canary_end != CANARY_END)
     {
         if (*canary_end == CANARY_POISONED)
@@ -380,6 +414,8 @@ size_t stackVerifier(Stack *stack)
         else
             error |= STACK_END_DATA_CANARY_DEAD;
     }
+//    printf("START CHECK: %p VALUE %zu\n", canary_start, *canary_start);
+//    printf("END CHECK: %p VALUE %zu\n", canary_end, *canary_end);
 # endif
 
     return error;
@@ -400,7 +436,7 @@ void printElem_t(Elem_t value, FILE *fp)
 {
     assert(fp != nullptr);
 
-    logStack(fp, "%lg \n", value);
+    logStack(fp, "%d", value);
 }
 
 void stackDump(Stack *stack,
@@ -412,10 +448,11 @@ void stackDump(Stack *stack,
     assert(info != nullptr);
 
     FILE *fp = stack->logFile;
-    if (fp == nullptr)
+//    if (fp == nullptr)
         fp = stderr;
 
     logStack(fp, "-----START LOGGING STACK-----\n");
+    logStack(fp, "Error code %zu.\n", error);
     logStack(fp, "Error in stack '%s' in function '%s' at %s (%d)\n",
              info->name,
              info->initFunction,
@@ -442,7 +479,7 @@ void stackDump(Stack *stack,
                  "    Stack hash = %zu \n"
                  "    Correct stack hash = %zu \n"
                  "    Stack data hash = %zu \n"
-                 "    Correct stack data ash = %zu \n"
+                 "    Correct stack data hash = %zu \n"
                  "    Data [%p] \n",
              stack->size,
              stack->capacity,
@@ -460,7 +497,6 @@ void stackDump(Stack *stack,
              stack->capacity,
              stack->data);
 #endif
-
     if (stack->data == POISON_PTR or stack->data == nullptr)
     {
         logStack(fp, "    Pointer poisoned.\n}\n");
@@ -471,13 +507,25 @@ void stackDump(Stack *stack,
 
         logStack(fp, "    * [%zu] = ", i);
         print(stack->data[i], fp);
+        logStack(fp,
+                 " %s\n",
+                 isPoison(stack->data[i]) ? "(Poisoned)" : "");
     }
     for (size_t i = stack->size; i < stack->capacity; i++)
     {
         logStack(fp, "      [%zu] = ", i);
         print(stack->data[i], fp);
+        logStack(fp,
+                 " %s\n",
+                 isPoison(stack->data[i]) ? "(Poisoned)" : "");
     }
     logStack(fp, "}\n");
+#if (CanaryProtection)
+    logStack(fp,
+             "Data Canary end %zu\n",
+             (Canary) (stack->data + stack->capacity));
+    logStack(fp, "Correct data Canary end %zu\n", CANARY_END);
+#endif
     processError(fp, error);
     logStack(fp, "-----END LOGGING STACK-----\n");
 }
@@ -552,4 +600,8 @@ void processError(FILE *fp, size_t error)
     if (error & STACK_DATA_INCORRECT_HASH)
         logStack(fp,
                  "Incorrect hash of stack data.\n");
+
+    if (error & STACK_NULLPTR)
+        logStack(fp,
+                 "Got stack nullptr.\n");
 }

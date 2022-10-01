@@ -5,10 +5,13 @@
 #include "string.h"
 #include "math.h"
 #include <cstdarg>
+#include "config.h"
 
-typedef double Elem_t;
+typedef int Elem_t;
 typedef uint64_t Canary;
-const Elem_t POISON_VALUE = NAN;
+#if (PoisonProtection)
+const Elem_t POISON_VALUE = INT_MAX;
+#endif
 const int POISON_INT_VALUE = -7;
 const Elem_t *const POISON_PTR = &POISON_VALUE;
 const char *const POISON_STRING = "1000-7";
@@ -34,8 +37,8 @@ struct Stack
 #endif
     Elem_t *data = (Elem_t *) POISON_PTR;
 
-    size_t capacity = (size_t) POISON_INT_VALUE;
-    size_t size = (size_t) POISON_INT_VALUE;
+    size_t capacity = (size_t) 0;
+    size_t size = (size_t) 0;
 
     StackInfo info = {};
     FILE *logFile = (FILE *) POISON_PTR;
@@ -51,25 +54,27 @@ struct Stack
 
 enum Errors
 {
-    STACK_NO_ERRORS = 0,
-    CANT_ALLOCATE_MEMORY_FOR_STACK = 1 << 0,
-    CANT_ALLOCATE_MEMORY = 1 << 1,
-    STACK_IS_EMPTY = 1 << 2,
-    STACK_SIZE_MORE_THAN_CAPACITY = 1 << 3,
-    STACK_POISON_PTR_ERR = 1 << 4,
-    STACK_POISONED_SIZE_ERR = 1 << 5,
-    STACK_POISONED_CAPACITY_ERR = 1 << 6,
-    STACK_INCORRECT_HASH = 1 << 7,
-    STACK_NOT_ALIVE = 1 << 8,
-    STACK_START_STRUCT_CANARY_DEAD = 1 << 9,
+    STACK_NO_ERRORS                    =       0,
+    CANT_ALLOCATE_MEMORY_FOR_STACK     = 1 <<  0,
+    CANT_ALLOCATE_MEMORY               = 1 <<  1,
+    STACK_IS_EMPTY                     = 1 <<  2,
+    STACK_SIZE_MORE_THAN_CAPACITY      = 1 <<  3,
+    STACK_POISON_PTR_ERR               = 1 <<  4,
+    STACK_POISONED_SIZE_ERR            = 1 <<  5,
+    STACK_POISONED_CAPACITY_ERR        = 1 <<  6,
+    STACK_INCORRECT_HASH               = 1 <<  7,
+    STACK_NOT_ALIVE                    = 1 <<  8,
+    STACK_START_STRUCT_CANARY_DEAD     = 1 <<  9,
     STACK_START_STRUCT_CANARY_POISONED = 1 << 10,
-    STACK_END_STRUCT_CANARY_DEAD = 1 << 11,
-    STACK_END_STRUCT_CANARY_POISONED = 1 << 12,
-    STACK_START_DATA_CANARY_DEAD = 1 << 13,
-    STACK_START_DATA_CANARY_POISONED = 1 << 14,
-    STACK_END_DATA_CANARY_DEAD = 1 << 15,
-    STACK_END_DATA_CANARY_POISONED = 1 << 16,
-    STACK_DATA_INCORRECT_HASH = 1 << 17,
+    STACK_END_STRUCT_CANARY_DEAD       = 1 << 11,
+    STACK_END_STRUCT_CANARY_POISONED   = 1 << 12,
+    STACK_START_DATA_CANARY_DEAD       = 1 << 13,
+    STACK_START_DATA_CANARY_POISONED   = 1 << 14,
+    STACK_END_DATA_CANARY_DEAD         = 1 << 15,
+    STACK_END_DATA_CANARY_POISONED     = 1 << 16,
+    STACK_DATA_INCORRECT_HASH          = 1 << 17,
+    STACK_POISONED_DATA                = 1 << 18,
+    STACK_NULLPTR                      = 1 << 19,
 };
 
 /**
@@ -137,6 +142,8 @@ size_t stackPop(Stack *stack, Elem_t *value);
  */
 size_t stackShrinkToFit(Stack *stack);
 
+void stackPoisonData(Stack *stack, size_t *error);
+
 /**
  * @brief resizes stack to certain len
  *
@@ -188,6 +195,10 @@ size_t stackHash(Stack *stack);
  * @return error code
  */
 size_t stackDtor(Stack *stack);
+
+bool isPoison(Elem_t value);
+
+void stackVerifyPoison(Stack *stack, size_t *error);
 
 /**
  * @brief Checks if stack is correct
