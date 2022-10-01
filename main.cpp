@@ -1,18 +1,11 @@
 #include "stack.h"
 #include "stack_logs.h"
 
-//FILE *fp = nullptr;
-//void closeFile()
-//{
-//    if (fp != nullptr)
-//        fclose(fp);
-//}
-
 int main()
 {
     Stack stack = {};
     setLogFile("logs.txt");
-
+    atexit(closeLogFile);
 
     size_t error = STACK_NO_ERRORS;
 
@@ -34,7 +27,5 @@ int main()
     error = stackPop(&stack, &value);
 
     error = stackPush(&stack, 666);
-
-    closeLogFile();
     return 0;
 }

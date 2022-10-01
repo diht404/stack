@@ -13,6 +13,7 @@ void setLogFile(const char *filename)
         return;
 
     STACK_LOG_FILE = fp;
+    setvbuf(STACK_LOG_FILE, nullptr, _IONBF, 0);
 }
 
 void closeLogFile()
@@ -37,6 +38,7 @@ void logStack(FILE *fp, const char *formatString, ...)
     va_list args;
     va_start(args, formatString);
     vfprintf(fp, formatString, args);
+    fflush(STACK_LOG_FILE);
     va_end(args);
 }
 

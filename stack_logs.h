@@ -4,9 +4,16 @@
 #include "stack.h"
 #include "stack_verification.h"
 
-
+/**
+ * @brief sets logfile
+ *
+ * @param filename name of logfile
+ */
 void setLogFile(const char *filename);
 
+/**
+ * @brief closes logfile
+ */
 void closeLogFile();
 
 /**
