@@ -49,7 +49,10 @@ void printData(Elem_t *data,
 {
     for (size_t i = 0; i < size; i++)
     {
-        logStack(STACK_LOG_FILE, "    %c [%zu] = ", alive ? '*' : ' ', i);
+        logStack(STACK_LOG_FILE,
+                 "    %c [%zu] = ",
+                 alive ? '*' : ' ',
+                 i);
         print(STACK_LOG_FILE, data[i]);
 #if (PoisonProtection)
         logStack(STACK_LOG_FILE,
@@ -72,7 +75,8 @@ void stackDump(Stack *stack,
     logStack(STACK_LOG_FILE, "-----START LOGGING STACK-----\n");
     if (stack == nullptr)
     {
-        logStack(STACK_LOG_FILE, "Can't log stack with pointer == nullptr");
+        logStack(STACK_LOG_FILE,
+                 "Can't log stack with pointer == nullptr");
         logStack(STACK_LOG_FILE, "-----END LOGGING STACK-----\n");
     }
     if (error & STACK_NOT_ALIVE)
@@ -90,7 +94,8 @@ void stackDump(Stack *stack,
 
     if (info == nullptr)
     {
-        logStack(STACK_LOG_FILE, "Info pointer is nullptr. Can't log info.");
+        logStack(STACK_LOG_FILE,
+                 "Info pointer is nullptr. Can't log info.");
     }
     else
     {
@@ -112,19 +117,20 @@ void stackDump(Stack *stack,
     }
     if (error & STACK_POISONED_DATA or error & STACK_POISON_PTR_ERR)
     {
-        logStack(STACK_LOG_FILE, "Data is nullptr. Can't log stack data.");
+        logStack(STACK_LOG_FILE,
+                 "Data is nullptr. Can't log stack data.");
         return;
     }
 
 # if (HashProtection)
     logStack(STACK_LOG_FILE, "{\n"
-                 "    Size = %zu \n"
-                 "    Capacity = %zu \n"
-                 "    Stack hash = %zu \n"
-                 "    Correct stack hash = %zu \n"
-                 "    Stack data hash = %zu \n"
-                 "    Correct stack data hash = %zu \n"
-                 "    Data [%p] \n",
+                             "    Size = %zu \n"
+                             "    Capacity = %zu \n"
+                             "    Stack hash = %zu \n"
+                             "    Correct stack hash = %zu \n"
+                             "    Stack data hash = %zu \n"
+                             "    Correct stack data hash = %zu \n"
+                             "    Data [%p] \n",
              stack->size,
              stack->capacity,
              stackHash(stack),
@@ -159,7 +165,9 @@ void stackDump(Stack *stack,
     logStack(STACK_LOG_FILE,
              "Data Canary end %zu\n",
              (Canary) (stack->data + stack->capacity));
-    logStack(STACK_LOG_FILE, "Correct data Canary end %zu\n", CANARY_END);
+    logStack(STACK_LOG_FILE,
+             "Correct data Canary end %zu\n",
+             CANARY_END);
 #endif
     processError(error);
     logStack(STACK_LOG_FILE, "-----END LOGGING STACK-----\n");

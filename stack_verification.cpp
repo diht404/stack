@@ -33,13 +33,11 @@ size_t stackVerifier(Stack *stack)
         return error;
     }
 
-
     if (!stack->alive)
     {
-        error |=  STACK_NOT_ALIVE;
+        error |= STACK_NOT_ALIVE;
         return error;
     }
-
 
     if (stack->size == (size_t) POISON_INT_VALUE)
     {
@@ -55,7 +53,7 @@ size_t stackVerifier(Stack *stack)
 
     if (stack->size > stack->capacity)
     {
-        error |=  STACK_SIZE_MORE_THAN_CAPACITY;
+        error |= STACK_SIZE_MORE_THAN_CAPACITY;
         return error;
     }
 #if (PoisonProtection)

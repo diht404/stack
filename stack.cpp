@@ -117,7 +117,7 @@ size_t stackShrinkToFit(Stack *stack)
     if (stack->size == 0)
     {
 #if (CanaryProtection)
-        free((char *)stack->data - sizeof(Canary));
+        free((char *) stack->data - sizeof(Canary));
 #else
         free(stack->data);
 #endif
