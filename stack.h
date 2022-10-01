@@ -40,10 +40,8 @@ struct Stack
 #endif
 #if (PoisonProtection)
     Elem_t *data = (Elem_t *) POISON_PTR;
-    FILE *logFile = nullptr;
 #else
     Elem_t *data = nullptr;
-    FILE *logFile = nullptr;
 #endif
     size_t capacity = (size_t) 0;
     size_t size = (size_t) 0;
@@ -92,7 +90,7 @@ enum Errors
  * @param logFile - file for stack logging
  * @return error code
  */
-size_t stackCtor__(Stack *stack, size_t numOfElements, FILE *logFile);
+size_t stackCtor__(Stack *stack, size_t numOfElements);
 
 /**
  * @brief macro constructor for stack
@@ -103,10 +101,10 @@ size_t stackCtor__(Stack *stack, size_t numOfElements, FILE *logFile);
  * @param logFile file for logs
  * @return void
  */
-#define stackCtor(stack, numOfElements, error, logFile)                \
+#define stackCtor(stack, numOfElements, error)                         \
 {                                                                      \
     (stack)->info = {__LINE__, __FILE__, __PRETTY_FUNCTION__, #stack}; \
-    *(error) = stackCtor__((stack), (numOfElements), (logFile));       \
+    *(error) = stackCtor__((stack), (numOfElements));                  \
 }
 
 /**

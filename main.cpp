@@ -11,13 +11,12 @@
 int main()
 {
     Stack stack = {};
-    FILE *fp = openLogs("logs.txt");
-    if (fp == nullptr)
-        return 1;
+    setLogFile("logs.txt");
+
 
     size_t error = STACK_NO_ERRORS;
 
-    stackCtor(&stack, 0, &error, fp)
+    stackCtor(&stack, 0, &error)
 
     for (int i = 0; i < 1024; i++)
     {
@@ -36,6 +35,6 @@ int main()
 
     error = stackPush(&stack, 666);
 
-    closeLogs(fp);
+    closeLogFile();
     return 0;
 }

@@ -2,10 +2,9 @@
 #include "stack_verification.h"
 #include "stack_logs.h"
 
-size_t stackCtor__(Stack *stack, size_t numOfElements, FILE *logFile)
+size_t stackCtor__(Stack *stack, size_t numOfElements)
 {
     assert(stack != nullptr);
-    assert(logFile != nullptr);
 
     size_t error = STACK_NO_ERRORS;
 
@@ -40,7 +39,6 @@ size_t stackCtor__(Stack *stack, size_t numOfElements, FILE *logFile)
     stack->size = 0;
     stack->capacity = numOfElements;
     stack->alive = true;
-    stack->logFile = logFile;
 
 # if (HashProtection)
     stack->dataHash = stackHashBuffer(stack);
