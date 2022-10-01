@@ -12,13 +12,14 @@ size_t stackCtor__(Stack *stack, size_t numOfElements, FILE *logFile)
 #if (CanaryProtection)
     char *canary_data_canary = (char *) calloc(
         dataSize + 2 * sizeof(Canary), sizeof(char));
-    stack->data = (Elem_t *)(canary_data_canary + sizeof(Canary));
+    stack->data = (Elem_t *) (canary_data_canary + sizeof(Canary));
 
     if (canary_data_canary == nullptr)
         return CANT_ALLOCATE_MEMORY_FOR_STACK;
 
-    *(Canary *)canary_data_canary = CANARY_START;
-    *(Canary *)(canary_data_canary + sizeof(Canary) + dataSize) = CANARY_END;
+    *(Canary *) canary_data_canary = CANARY_START;
+    *(Canary *) (canary_data_canary + sizeof(Canary) + dataSize) =
+        CANARY_END;
 
     stack->canary_start = CANARY_START;
     stack->canary_end = CANARY_END;
@@ -151,11 +152,10 @@ size_t stackResizeMemory(Stack *stack, size_t newStackCapacity)
         return CANT_ALLOCATE_MEMORY_FOR_STACK;
 
 #if (CanaryProtection)
-    stack->data = (Elem_t *)(newData+sizeof(Canary));
+    stack->data = (Elem_t *) (newData + sizeof(Canary));
 
     *(Canary *) newData = CANARY_START;
-    *(Canary *)(stack->data + newStackCapacity) = CANARY_END;
-
+    *(Canary *) (stack->data + newStackCapacity) = CANARY_END;
 
 #else
     stack->data = (Elem_t *) newData;
@@ -164,8 +164,6 @@ size_t stackResizeMemory(Stack *stack, size_t newStackCapacity)
 #if (PoisonProtection)
     stackPoisonData(stack, &error);
 #endif
-
-
 
 #if (HashProtection)
     stack->dataHash = stackHashBuffer(stack);
@@ -202,7 +200,7 @@ size_t stackResize(Stack *stack)
     if (stack->size * 4 <= stack->capacity)
     {
         size_t newStackCapacity = stack->capacity / 2;
-        *(Canary *)(stack->data + stack->capacity) = CANARY_END;
+        *(Canary *) (stack->data + stack->capacity) = CANARY_END;
         error = stackResizeMemory(stack, newStackCapacity);
         return error;
     }
@@ -254,7 +252,7 @@ size_t stackDtor(Stack *stack)
     if (error)
         return error;
 # if (CanaryProtection)
-    free((char *)stack->data - sizeof(Canary));
+    free((char *) stack->data - sizeof(Canary));
 # else
     free(stack->data);
 # endif
@@ -326,7 +324,7 @@ size_t stackVerifier(Stack *stack)
 
     if (stack->size > stack->capacity)
     {
-        error |= STACK_SIZE_MORE_THAN_CAPACITY;
+        return STACK_SIZE_MORE_THAN_CAPACITY;
     }
 #if (PoisonProtection)
     if (stack->data == POISON_PTR or stack->data == nullptr)
@@ -395,8 +393,6 @@ size_t stackVerifier(Stack *stack)
         else
             error |= STACK_END_DATA_CANARY_DEAD;
     }
-//    printf("START CHECK: %p VALUE %zu\n", canary_start, *canary_start);
-//    printf("END CHECK: %p VALUE %zu\n", canary_end, *canary_end);
 # endif
 
     return error;
@@ -420,39 +416,78 @@ void printElem_t(Elem_t value, FILE *fp)
     logStack(fp, "%d", value);
 }
 
+void printData(Elem_t *data,
+               FILE *fp,
+               size_t size,
+               bool alive,
+               void (*print)(Elem_t, FILE *))
+{
+    for (size_t i = 0; i < size; i++)
+    {
+
+        logStack(fp, "    %c [%zu] = ", alive ? '*' : ' ', i);
+        print(data[i], fp);
+#if (PoisonProtection)
+        logStack(fp,
+                 " %s\n",
+                 isPoison(data[i]) ? "(Poisoned)" : "");
+#else
+        logStack(fp, "\n");
+#endif
+    }
+}
+
 void stackDump(Stack *stack,
                StackInfo *info,
                size_t error,
                void (*print)(Elem_t, FILE *))
 {
-    assert(stack != nullptr);
-    assert(info != nullptr);
-
     FILE *fp = stack->logFile;
     if (fp == nullptr)
         fp = stderr;
 
     logStack(fp, "-----START LOGGING STACK-----\n");
-    logStack(fp, "Error code %zu.\n", error);
-    logStack(fp, "Error in stack '%s' in function '%s' at %s (%d)\n",
-             info->name,
-             info->initFunction,
-             info->initFile,
-             info->initLine);
-
-    if (!stack->alive)
+    if (stack == nullptr)
+    {
+        logStack(fp, "Can't log stack with pointer == nullptr");
+        logStack(fp, "-----END LOGGING STACK-----\n");
+    }
+    assert(info != nullptr);
+    if (error & STACK_NOT_ALIVE)
     {
         processError(fp, error);
         logStack(fp, "-----END LOGGING STACK-----\n");
         return;
     }
 
-    logStack(fp, "Stack [%p] '%s' was initialized at %s at %s (%d)\n",
-             stack,
-             stack->info.name,
-             stack->info.initFunction,
-             stack->info.initFile,
-             stack->info.initLine);
+    if (error & STACK_SIZE_MORE_THAN_CAPACITY)
+    {
+        logStack(fp, "-----END LOGGING STACK-----\n");
+        return;
+    }
+
+    if (info == nullptr)
+    {
+        logStack(fp, "Info pointer is nullptr. Can't log info.");
+    }
+    else
+    {
+        logStack(fp, "Error code %zu.\n", error);
+        logStack(fp,
+                 "Error in stack '%s' in function '%s' at %s (%d)\n",
+                 info->name,
+                 info->initFunction,
+                 info->initFile,
+                 info->initLine);
+
+        logStack(fp,
+                 "Stack [%p] '%s' was initialized at %s at %s (%d)\n",
+                 stack,
+                 stack->info.name,
+                 stack->info.initFunction,
+                 stack->info.initFile,
+                 stack->info.initLine);
+    }
 # if (HashProtection)
     logStack(fp, "{\n"
                  "    Size = %zu \n"
@@ -486,32 +521,13 @@ void stackDump(Stack *stack,
         return;
     }
 #endif
-    for (size_t i = 0; i < stack->size; i++)
-    {
+    printData(stack->data, fp, stack->size, true, print);
+    printData(stack->data + stack->size,
+              fp,
+              stack->capacity - stack->size,
+              false,
+              print);
 
-        logStack(fp, "    * [%zu] = ", i);
-        print(stack->data[i], fp);
-#if (PoisonProtection)
-        logStack(fp,
-                 " %s\n",
-                 isPoison(stack->data[i]) ? "(Poisoned)" : "");
-#else
-        logStack(fp, "\n");
-#endif
-    }
-    for (size_t i = stack->size; i < stack->capacity; i++)
-    {
-        logStack(fp, "      [%zu] = ", i);
-        print(stack->data[i], fp);
-#if (PoisonProtection)
-        logStack(fp,
-                 " %s\n",
-                 isPoison(stack->data[i]) ? "(Poisoned)" : "");
-#else
-        logStack(fp, "\n");
-#endif
-    }
-    logStack(fp, "}\n");
 #if (CanaryProtection)
     logStack(fp,
              "Data Canary end %zu\n",

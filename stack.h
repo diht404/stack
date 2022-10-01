@@ -215,6 +215,12 @@ void logStack(FILE *fp, const char *formatString, ...);
  */
 void printElem_t(Elem_t value, FILE *fp);
 
+void printData(Elem_t *data,
+               FILE *fp,
+               size_t size,
+               bool alive,
+               void (*print)(Elem_t, FILE *) = printElem_t);
+
 /**
  * @brief generates dump of stack
  *
