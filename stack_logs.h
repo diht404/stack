@@ -33,6 +33,14 @@ void printElem_t(FILE *fp, Elem_t value);
  */
 void logStack(FILE *fp, const char *formatString, ...);
 
+/**
+ * @brief prints array of Elem_t
+ *
+ * @param data array to print
+ * @param size number of elements to print
+ * @param alive prints * if array is alive and ' ' if not
+ * @param print function to print element
+ */
 void printData(Elem_t *data,
                size_t size,
                bool alive,

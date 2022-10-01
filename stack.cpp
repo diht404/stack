@@ -26,8 +26,7 @@ size_t stackCtor__(Stack *stack, size_t numOfElements)
     stack->canary_end = CANARY_END;
 
 #else
-    stack->data =
-        (Elem_t *) calloc(dataSize);
+    stack->data = (Elem_t *) calloc(dataSize, 1);
     if (stack->data == nullptr)
         return CANT_ALLOCATE_MEMORY_FOR_STACK;
 #endif
@@ -136,16 +135,14 @@ void stackPoisonData(Stack *stack)
 size_t stackResizeMemory(Stack *stack, size_t newStackCapacity)
 {
     size_t error = 0;
-    size_t newCapacity =
-        sizeof(Elem_t) * newStackCapacity;
+    size_t newCapacity = sizeof(Elem_t) * newStackCapacity;
 
 #if (CanaryProtection)
     char *newData =
         (char *) realloc((char *) stack->data - sizeof(Canary),
                          newCapacity + 2 * sizeof(Canary));
 #else
-    Elem_t *newData =
-        (Elem_t *) realloc(stack->data, newCapacity);
+    Elem_t *newData = (Elem_t *) realloc(stack->data, newCapacity);
 #endif
 
     if (newData == nullptr)
@@ -200,7 +197,6 @@ size_t stackResize(Stack *stack)
     if (stack->size * 4 <= stack->capacity)
     {
         size_t newStackCapacity = stack->capacity / 2;
-        *(Canary *) (stack->data + stack->capacity) = CANARY_END;
         error = stackResizeMemory(stack, newStackCapacity);
         return error;
     }

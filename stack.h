@@ -38,13 +38,15 @@ struct Stack
 #if (CanaryProtection)
     Canary canary_start = CANARY_START;
 #endif
+
 #if (PoisonProtection)
     Elem_t *data = (Elem_t *) POISON_PTR;
 #else
     Elem_t *data = nullptr;
 #endif
-    size_t capacity = (size_t) 0;
-    size_t size = (size_t) 0;
+
+    size_t capacity = 0;
+    size_t size = 0;
 
     StackInfo info = {};
     bool alive = false;
@@ -52,6 +54,7 @@ struct Stack
     size_t dataHash = 0;
     size_t hash = 0;
 #endif
+
 #if (CanaryProtection)
     Canary canary_end = CANARY_END;
 #endif
