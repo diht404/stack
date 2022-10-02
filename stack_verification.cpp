@@ -3,7 +3,7 @@
 #if (PoisonProtection)
 bool isPoison(Elem_t value)
 {
-    return value == POISON_VALUE;//TODO: add for other types
+    return value == POISON_VALUE;
 }
 #endif
 
