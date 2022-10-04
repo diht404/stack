@@ -90,8 +90,8 @@ size_t stackPop(Stack *stack, Elem_t *value)
         *value = 0;
         return STACK_IS_EMPTY;
     }
-
-    *value = stack->data[stack->size--];
+    stack->size--;
+    *value = stack->data[stack->size];
 
 #if (HashProtection)
     stack->dataHash = stackHashBuffer(stack);

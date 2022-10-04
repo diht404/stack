@@ -19,6 +19,7 @@ int main()
     {
         Elem_t value = 0;
         error = stackPop(&stack, &value);
+        printf("%d\n", value);
     }
     stackShrinkToFit(&stack);
     error = stackDtor(&stack);
