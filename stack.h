@@ -9,6 +9,7 @@
 #include "math.h"
 #include <cstdarg>
 #include "config.h"
+#include "climits"
 
 typedef int Elem_t;
 typedef uint64_t Canary;
