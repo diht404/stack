@@ -11,10 +11,10 @@
 #include "config.h"
 #include "climits"
 
-typedef int Elem_t;
+typedef size_t Elem_t;
 typedef uint64_t Canary;
 #if (PoisonProtection)
-const Elem_t POISON_VALUE = INT_MAX;
+const Elem_t POISON_VALUE = -7;
 const Elem_t *const POISON_PTR = &POISON_VALUE;
 #endif
 const int POISON_INT_VALUE = -7;
@@ -65,7 +65,7 @@ enum Errors
 {
     STACK_NO_ERRORS                    =       0,
     CANT_ALLOCATE_MEMORY_FOR_STACK     = 1 <<  0,
-    CANT_ALLOCATE_MEMORY               = 1 <<  1,
+    STACK_CANT_ALLOCATE_MEMORY         = 1 <<  1,
     STACK_IS_EMPTY                     = 1 <<  2,
     STACK_SIZE_MORE_THAN_CAPACITY      = 1 <<  3,
     STACK_POISON_PTR_ERR               = 1 <<  4,

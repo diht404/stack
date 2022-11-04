@@ -185,7 +185,7 @@ void processError(size_t error)
     if (error & CANT_ALLOCATE_MEMORY_FOR_STACK)
         logStack(STACK_LOG_FILE,
                  "Can't allocate memory for stack.\n");
-    if (error & CANT_ALLOCATE_MEMORY)
+    if (error & STACK_CANT_ALLOCATE_MEMORY)
         logStack(STACK_LOG_FILE,
                  "Can't allocate memory.\n");
     if (error & STACK_IS_EMPTY)
